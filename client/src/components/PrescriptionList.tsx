@@ -32,7 +32,7 @@ const PrescriptionList: React.FC = () => {
   const fetchPrescriptions = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/prescriptions', {
+      const response = await axios.get('http://localhost:8000/api/prescriptions', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPrescriptions(response.data.prescriptions);
@@ -47,7 +47,7 @@ const PrescriptionList: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this prescription?')) {
       try {
         const token = localStorage.getItem('token');
-        await axios.delete(`http://localhost:5000/api/prescriptions/${id}`, {
+        await axios.delete(`http://localhost:8000/api/prescriptions/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setPrescriptions(prescriptions.filter(p => p._id !== id));

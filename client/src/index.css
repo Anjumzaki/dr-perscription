@@ -1,6 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap');
+
+.form-input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Phone Input Styling */
+.phone-input-wrapper {
+  width: 100%;
+}
+
+.PhoneInput {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.PhoneInputCountrySelect {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0 8px 0 0;
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.PhoneInputCountrySelectArrow {
+  color: #6b7280;
+  margin-left: 4px;
+}
+
+.PhoneInputInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  padding: 0;
+  min-width: 0;
+}
+
+.PhoneInputInput:focus {
+  outline: none;
+}
+
+.PhoneInput:focus-within {
+  outline: none;
+}
+
+/* Dark mode adjustments */
+.dark .PhoneInputCountrySelect {
+  color: #f6f7f8;
+}
+
+.dark .PhoneInputInput {
+  color: #f6f7f8;
+}
+
+.dark .PhoneInputInput::placeholder {
+  color: #9ca3af;
+}
+
+.phone-number-input {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: inherit !important;
+  font-size: 14px !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;

@@ -55,7 +55,7 @@ const CreatePrescription: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        'http://localhost:5000/api/prescriptions',
+        'http://localhost:8000/api/prescriptions',
         {
           patient: { ...patient, age: parseInt(patient.age) },
           medications,

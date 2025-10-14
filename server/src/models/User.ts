@@ -4,9 +4,13 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
+  phone: string;
   role: 'doctor' | 'admin';
   licenseNumber?: string;
   specialization?: string;
+  isEmailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +33,11 @@ const UserSchema: Schema = new Schema({
     required: true,
     minlength: 6
   },
+  phone: {
+    type: String,
+    required: true,
+    trim: true
+  },
   role: {
     type: String,
     enum: ['doctor', 'admin'],
@@ -45,6 +54,18 @@ const UserSchema: Schema = new Schema({
     required: function(this: IUser) {
       return this.role === 'doctor';
     }
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerificationToken: {
+    type: String,
+    select: false
+  },
+  emailVerificationExpires: {
+    type: Date,
+    select: false
   }
 }, {
   timestamps: true
