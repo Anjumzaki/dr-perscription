@@ -1,15 +1,28 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { loginUser, clearError } from '../store/slices/authSlice';
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    // Clear error when component mounts
+    dispatch(clearError());
+  }, [dispatch]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -20,18 +33,14 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-
+    dispatch(clearError());
+    
     try {
-      const response = await axios.post('http://localhost:8000/api/auth/login', formData);
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      navigate('/dashboard');
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Login failed');
-    } finally {
-      setLoading(false);
+      await dispatch(loginUser(formData)).unwrap();
+      // Navigation will be handled by useEffect when isAuthenticated changes
+    } catch (error) {
+      // Error is handled by Redux state
+      console.error('Login failed:', error);
     }
   };
 
@@ -107,9 +116,9 @@ const Login: React.FC = () => {
               <button
                 className="group relative flex w-full justify-center rounded-lg border border-transparent bg-primary py-3 px-4 text-sm font-semibold text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background-dark disabled:opacity-50 disabled:cursor-not-allowed"
                 type="submit"
-                disabled={loading}
+                disabled={isLoading}
               >
-                {loading ? 'Signing in...' : 'Login'}
+                {isLoading ? 'Signing in...' : 'Login'}
               </button>
             </div>
           </form>

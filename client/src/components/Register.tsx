@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { registerUser, clearError } from '../store/slices/authSlice';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 
@@ -16,10 +17,16 @@ const Register: React.FC = () => {
     specialization: '',
     inviteCode: ''
   });
-  const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
+  
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { isLoading, error } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    // Clear error when component mounts
+    dispatch(clearError());
+  }, [dispatch]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({
@@ -37,19 +44,18 @@ const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    dispatch(clearError());
     setSuccess('');
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
+      setSuccess('');
+      // Will show error via Redux state
       return;
     }
 
     if (!formData.phone) {
-      setError('Phone number is required');
-      setLoading(false);
+      setSuccess('');
+      // Will show error via Redux state
       return;
     }
 
@@ -64,7 +70,7 @@ const Register: React.FC = () => {
         specialization: formData.specialization
       };
       
-      const response = await axios.post('http://localhost:8000/api/auth/register', submitData);
+      await dispatch(registerUser(submitData)).unwrap();
       setSuccess('Registration successful! Please check your email to verify your account before logging in.');
       
       // Don't auto-login, let them verify email first
@@ -72,9 +78,8 @@ const Register: React.FC = () => {
         navigate('/login');
       }, 3000);
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Registration failed');
-    } finally {
-      setLoading(false);
+      // Error is handled by Redux state
+      console.error('Registration failed:', error);
     }
   };
 
@@ -281,9 +286,9 @@ const Register: React.FC = () => {
                 <button
                   className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-light dark:focus:ring-offset-background-dark focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   type="submit"
-                  disabled={loading}
+                  disabled={isLoading}
                 >
-                  {loading ? 'Registering...' : 'Register'}
+                  {isLoading ? 'Registering...' : 'Register'}
                 </button>
               </div>
 

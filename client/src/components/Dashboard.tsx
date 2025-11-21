@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { logout } from '../store/slices/authSlice';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
   const [stats, setStats] = useState({
     totalPatients: 0,
     consultationsToday: 0,
@@ -22,8 +24,7 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    dispatch(logout());
     navigate('/login');
   };
 
@@ -61,12 +62,12 @@ const Dashboard: React.FC = () => {
             {/* Welcome Section */}
             <div className="mb-8">
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
-                Welcome, Dr. {user.name || 'Doctor'}
+                Welcome, Dr. {user?.name || 'Doctor'}
               </h1>
               <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
                 Manage your patients, consultations, and prescriptions efficiently.
               </p>
-              {user.specialization && (
+              {user?.specialization && (
                 <p className="mt-1 text-sm text-primary font-medium">
                   {user.specialization} • License: {user.licenseNumber}
                 </p>
