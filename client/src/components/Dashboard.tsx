@@ -85,12 +85,15 @@ const Dashboard: React.FC = () => {
                 </svg>
                 Add New Prescription
               </Link>
-              <button className="flex items-center gap-2 rounded-lg bg-primary/10 px-5 py-3 text-sm font-semibold text-primary hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 transition-colors">
+              <Link
+                to="/patients"
+                className="flex items-center gap-2 rounded-lg bg-primary/10 px-5 py-3 text-sm font-semibold text-primary hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 transition-colors"
+              >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                 </svg>
-                Add New Patient
-              </button>
+                Manage Patients
+              </Link>
             </div>
 
             {/* Quick Overview */}
@@ -131,7 +134,10 @@ const Dashboard: React.FC = () => {
                   </div>
                 </Link>
 
-                <button className="flex items-center gap-3 rounded-lg border border-primary/20 bg-background-light p-4 shadow-sm hover:bg-primary/5 dark:border-primary/30 dark:bg-background-dark dark:hover:bg-primary/10 transition-colors">
+                <Link
+                  to="/patients"
+                  className="flex items-center gap-3 rounded-lg border border-primary/20 bg-background-light p-4 shadow-sm hover:bg-primary/5 dark:border-primary/30 dark:bg-background-dark dark:hover:bg-primary/10 transition-colors"
+                >
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                     <svg className="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -139,9 +145,9 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900 dark:text-white">Patient Records</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">View patient history</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Manage patient data</p>
                   </div>
-                </button>
+                </Link>
 
                 <button className="flex items-center gap-3 rounded-lg border border-primary/20 bg-background-light p-4 shadow-sm hover:bg-primary/5 dark:border-primary/30 dark:bg-background-dark dark:hover:bg-primary/10 transition-colors">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">

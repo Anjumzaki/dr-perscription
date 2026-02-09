@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { createPrescription, clearError } from '../store/slices/prescriptionSlice';
 
 // Step components
 import PatientSelection from './prescription-steps/PatientSelection';
@@ -69,9 +71,10 @@ interface PrescriptionData {
 
 const MultistepPrescription: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { isLoading, error: reduxError } = useAppSelector(state => state.prescriptions);
+  
   const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const [prescriptionData, setPrescriptionData] = useState<PrescriptionData>({
     patient: {
@@ -128,7 +131,7 @@ const MultistepPrescription: React.FC = () => {
   const updatePrescriptionData = (section: keyof PrescriptionData, data: any) => {
     setPrescriptionData(prev => ({
       ...prev,
-      [section]: { ...prev[section], ...data }
+      [section]: section === 'medications' ? data : { ...prev[section], ...data }
     }));
   };
 
@@ -151,56 +154,29 @@ const MultistepPrescription: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    setLoading(true);
-    setError('');
+    dispatch(clearError());
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/prescriptions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          patient: prescriptionData.patient,
-          diagnosis: prescriptionData.diagnosis.primaryDiagnosis,
-          medications: prescriptionData.medications,
-          notes: `
-            Secondary Diagnosis: ${prescriptionData.diagnosis.secondaryDiagnosis || 'None'}
-            Symptoms: ${prescriptionData.diagnosis.symptoms.join(', ')}
-            Duration: ${prescriptionData.diagnosis.duration}
-            Severity: ${prescriptionData.diagnosis.severity}
-            
-            Lifestyle Advice:
-            - Dietary: ${prescriptionData.lifestyle.dietaryAdvice.join(', ')}
-            - Exercise: ${prescriptionData.lifestyle.exerciseRecommendations.join(', ')}
-            - Modifications: ${prescriptionData.lifestyle.lifestyleModifications.join(', ')}
-            
-            Vitals:
-            - BP: ${prescriptionData.vitals.bloodPressure}
-            - HR: ${prescriptionData.vitals.heartRate}
-            - Temp: ${prescriptionData.vitals.temperature}
-            - Weight: ${prescriptionData.vitals.weight}
-            
-            Tests Ordered: ${prescriptionData.tests.orderedTests.join(', ')}
-            
-            Follow-up: ${prescriptionData.lifestyle.followUpInstructions}
-          `.trim()
-        })
-      });
+      // Prepare the data for the API call
+      const prescriptionPayload = {
+        patient: prescriptionData.patient,
+        diagnosis: prescriptionData.diagnosis,
+        lifestyle: prescriptionData.lifestyle,
+        vitals: prescriptionData.vitals,
+        tests: prescriptionData.tests,
+        medications: prescriptionData.medications,
+        notes: prescriptionData.lifestyle.followUpInstructions || ''
+      };
 
-      if (response.ok) {
-        alert('Prescription created successfully!');
-        navigate('/prescriptions');
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'Failed to create prescription');
-      }
-    } catch (err: any) {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
+      console.log('Submitting prescription with payload:', prescriptionPayload);
+
+      await dispatch(createPrescription(prescriptionPayload)).unwrap();
+      
+      alert('Prescription created successfully!');
+      navigate('/prescriptions');
+    } catch (error) {
+      console.error('Failed to create prescription:', error);
+      // Error is handled by Redux state
     }
   };
 
@@ -250,8 +226,8 @@ const MultistepPrescription: React.FC = () => {
             onUpdate={(data) => updatePrescriptionData('medications', data)}
             onSubmit={handleSubmit}
             onPrev={prevStep}
-            loading={loading}
-            error={error}
+            loading={isLoading}
+            error={reduxError || ''}
           />
         );
       default:

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<deviceConfig>
+    <application name="com.honeywell.decodeconfig">
+        <decoderProperty type="int" name="OCRMode" value="1" />
+        <decoderProperty type="int" name="OCRTemplates" value="3,3,3,3,3,3,3,3,9,3,3,3,3,3,3,3,3,0" />
+        <decoderProperty type="string" name="OCRUserDefinedCharacters" value="0123456789ABCDEFGHJKLMNPRSTUVWXYZ" />
+        <decoderProperty type="int" name="OCRDirection" value="15" />
+        <decoderProperty type="int" name="OCRFont" value="2" />
+        <decoderProperty type="bool" name="OCRNormalVideo" value="true" />
+        <decoderProperty type="bool" name="OCRReverseVideo" value="true" />
+    </application>
+</deviceConfig>

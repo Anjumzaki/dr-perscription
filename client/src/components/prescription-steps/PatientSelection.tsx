@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { fetchPatients, createPatient, clearError } from '../../store/slices/patientSlice';
 
 interface Patient {
   id?: string;
@@ -18,43 +20,20 @@ interface PatientSelectionProps {
 }
 
 const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onNext }) => {
-  const [existingPatients, setExistingPatients] = useState<Patient[]>([]);
+  const dispatch = useAppDispatch();
+  const { patients, isLoading, error: reduxError } = useAppSelector(state => state.patients);
+  
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchExistingPatients();
-  }, []);
+    dispatch(fetchPatients({}));
+    dispatch(clearError());
+  }, [dispatch]);
 
-  const fetchExistingPatients = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/patients', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const patients = await response.json();
-        setExistingPatients(patients);
-      } else {
-        // If patients endpoint doesn't exist, use empty array
-        setExistingPatients([]);
-      }
-    } catch (err) {
-      console.log('No existing patients endpoint - will use empty array');
-      setExistingPatients([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredPatients = existingPatients.filter(patient =>
+  const filteredPatients = patients.filter(patient =>
     patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.phone.includes(searchTerm)
   );
@@ -72,7 +51,7 @@ const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onN
     });
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!isAddingNew && !selectedPatientId) {
       setError('Please select a patient or add a new one');
       return;
@@ -81,6 +60,26 @@ const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onN
     if (isAddingNew) {
       if (!data.name.trim() || !data.phone.trim() || !data.age) {
         setError('Please fill in all required fields (Name, Age, Phone)');
+        return;
+      }
+      
+      // Save new patient to database
+      try {
+        const newPatient = await dispatch(createPatient({
+          name: data.name,
+          age: data.age,
+          gender: data.gender,
+          phone: data.phone,
+          email: data.email,
+          address: data.address,
+          emergencyContact: data.emergencyContact,
+        })).unwrap();
+        
+        // Update the form data with the new patient ID
+        onUpdate({ ...data, id: newPatient.id });
+        
+      } catch (error) {
+        setError(reduxError || 'Failed to save patient');
         return;
       }
     }
@@ -100,9 +99,9 @@ const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onN
         </p>
       </div>
 
-      {error && (
+      {(error || reduxError) && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-600 text-sm">{error}</p>
+          <p className="text-red-600 text-sm">{error || reduxError}</p>
         </div>
       )}
 
@@ -151,7 +150,7 @@ const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onN
 
           {/* Patient List */}
           <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg dark:border-gray-600">
-            {loading ? (
+            {isLoading ? (
               <div className="p-4 text-center text-gray-500">Loading patients...</div>
             ) : filteredPatients.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
@@ -296,9 +295,10 @@ const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onN
       <div className="flex justify-end mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
         <button
           onClick={handleNext}
-          className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          disabled={isLoading}
+          className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Next: Diagnosis
+          {isLoading ? 'Saving Patient...' : 'Next: Diagnosis'}
         </button>
       </div>
     </div>

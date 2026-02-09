@@ -4,17 +4,38 @@ import { AuthenticatedRequest } from '../middleware/auth';
 
 export const createPrescription = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { patient, medications, diagnosis, notes } = req.body;
+    const { patient, diagnosis, lifestyle, vitals, tests, medications, notes } = req.body;
 
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
+    console.log('Creating prescription with data:', {
+      patient, diagnosis, lifestyle, vitals, tests, medications, notes
+    });
+
+    // Validate required fields
+    if (!patient || !diagnosis || !lifestyle || !vitals || !tests || !medications) {
+      return res.status(400).json({ 
+        message: 'All prescription sections are required (patient, diagnosis, lifestyle, vitals, tests, medications)' 
+      });
+    }
+
+    if (!medications || medications.length === 0) {
+      return res.status(400).json({ 
+        message: 'At least one medication is required' 
+      });
+    }
+
     const prescription = new Prescription({
       doctorId: req.user._id,
+      patientId: patient.id || null, // Reference to Patient document if available
       patient,
-      medications,
       diagnosis,
+      lifestyle,
+      vitals,
+      tests,
+      medications,
       notes
     });
 
@@ -26,6 +47,7 @@ export const createPrescription = async (req: AuthenticatedRequest, res: Respons
       prescription
     });
   } catch (error) {
+    console.error('Error creating prescription:', error);
     res.status(500).json({ message: 'Server error', error });
   }
 };
@@ -85,7 +107,7 @@ export const getPrescriptionById = async (req: AuthenticatedRequest, res: Respon
 export const updatePrescription = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { patient, medications, diagnosis, notes } = req.body;
+    const { patient, diagnosis, lifestyle, vitals, tests, medications, notes } = req.body;
 
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -93,7 +115,16 @@ export const updatePrescription = async (req: AuthenticatedRequest, res: Respons
 
     const prescription = await Prescription.findOneAndUpdate(
       { _id: id, doctorId: req.user._id },
-      { patient, medications, diagnosis, notes },
+      { 
+        patientId: patient.id || null,
+        patient, 
+        diagnosis, 
+        lifestyle, 
+        vitals, 
+        tests, 
+        medications, 
+        notes 
+      },
       { new: true, runValidators: true }
     ).populate('doctorId', 'name licenseNumber specialization');
 

@@ -3,6 +3,8 @@ import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { combineReducers } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
+import patientReducer from './slices/patientSlice';
+import prescriptionReducer from './slices/prescriptionSlice';
 import apiMiddleware from './middleware/apiMiddleware';
 
 const persistConfig = {
@@ -13,6 +15,8 @@ const persistConfig = {
 
 const rootReducer = combineReducers({
   auth: authReducer,
+  patients: patientReducer,
+  prescriptions: prescriptionReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
