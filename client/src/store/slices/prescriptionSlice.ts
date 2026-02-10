@@ -113,8 +113,6 @@ const getToken = () => {
     return null;
   }
 };
-const token = getToken();
-
 // Async thunks for API calls
 export const fetchPrescriptions = createAsyncThunk(
   'prescriptions/fetchAll',
@@ -124,6 +122,7 @@ export const fetchPrescriptions = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
+      const token = getToken();
       const queryParams = new URLSearchParams();
 
       if (params.search) queryParams.append('search', params.search);
@@ -173,6 +172,7 @@ export const createPrescription = createAsyncThunk(
   'prescriptions/create',
   async (prescriptionData: PrescriptionData, { rejectWithValue }) => {
     try {
+      const token = getToken();
       const response = await fetch('http://localhost:8000/api/prescriptions', {
         method: 'POST',
         headers: {
@@ -199,6 +199,7 @@ export const updatePrescription = createAsyncThunk(
   'prescriptions/update',
   async (params: { id: string; data: PrescriptionData }, { rejectWithValue }) => {
     try {
+      const token = getToken();
       const response = await fetch(`http://localhost:8000/api/prescriptions/${params.id}`, {
         method: 'PUT',
         headers: {
@@ -225,6 +226,7 @@ export const deletePrescription = createAsyncThunk(
   'prescriptions/delete',
   async (prescriptionId: string, { rejectWithValue }) => {
     try {
+      const token = getToken();
       const response = await fetch(`http://localhost:8000/api/prescriptions/${prescriptionId}`, {
         method: 'DELETE',
         headers: {
@@ -248,6 +250,7 @@ export const fetchPrescriptionById = createAsyncThunk(
   'prescriptions/fetchById',
   async (prescriptionId: string, { rejectWithValue }) => {
     try {
+      const token = getToken();
       const response = await fetch(`http://localhost:8000/api/prescriptions/${prescriptionId}`, {
         method: 'GET',
         headers: {

@@ -58,8 +58,6 @@ const getToken = () => {
     return null;
   }
 };
-const token = getToken();
-
 // Fetch appointments
 interface FetchAppointmentsParams {
   search?: string;
@@ -71,6 +69,7 @@ export const fetchAppointments = createAsyncThunk(
   'appointments/fetchAll',
   async (params: FetchAppointmentsParams = {}, { rejectWithValue }) => {
     try {
+      const token = getToken();
       const queryParams = new URLSearchParams();
       if (params.search) queryParams.append('search', params.search);
       if (params.page) queryParams.append('page', params.page.toString());
@@ -107,6 +106,7 @@ export const createAppointment = createAsyncThunk(
   'appointments/create',
   async (appointmentData: CreateAppointmentData, { rejectWithValue }) => {
     try {
+      const token = getToken();
       if (!token) return rejectWithValue('Auth token missing');
 
       const response = await fetch(`http://localhost:8000/api/appointments`, {
@@ -136,6 +136,7 @@ export const updateAppointment = createAsyncThunk(
   'appointments/update',
   async (appointmentData: UpdateAppointmentData, { rejectWithValue }) => {
     try {
+      const token = getToken();
       if (!token) return rejectWithValue('Auth token missing');
 
       const { id, ...updateData } = appointmentData;
@@ -167,6 +168,7 @@ export const deleteAppointment = createAsyncThunk(
   'appointments/delete',
   async (id: string, { rejectWithValue }) => {
     try {
+      const token = getToken();
       if (!token) return rejectWithValue('Auth token missing');
 
       const response = await fetch(`http://localhost:8000/api/appointments/${id}`, {

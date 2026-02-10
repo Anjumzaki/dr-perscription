@@ -62,8 +62,6 @@ const getToken = () => {
     return null;
   }
 };
-const token = getToken();
-
 // Async thunks for API calls
 export const fetchPatients = createAsyncThunk(
   'patients/fetchAll',
@@ -72,12 +70,11 @@ export const fetchPatients = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
+      const token = getToken();
       const queryParams = new URLSearchParams();
       if (params.search) queryParams.append('search', params.search);
       if (params.page) queryParams.append('page', params.page.toString());
       if (params.limit) queryParams.append('limit', params.limit.toString());
-
-     
 
       if (!token) {
         return rejectWithValue('Auth token missing');
@@ -109,6 +106,7 @@ export const createPatient = createAsyncThunk(
   'patients/create',
   async (patientData: CreatePatientData, { rejectWithValue }) => {
     try {
+      const token = getToken();
       const response = await fetch('http://localhost:8000/api/patients', {
         method: 'POST',
         headers: {
@@ -135,6 +133,7 @@ export const updatePatient = createAsyncThunk(
   'patients/update',
   async (patientData: UpdatePatientData, { rejectWithValue }) => {
     try {
+      const token = getToken();
       const { id, ...updateData } = patientData;
       const response = await fetch(`http://localhost:8000/api/patients/${id}`, {
         method: 'PUT',
@@ -162,6 +161,7 @@ export const deletePatient = createAsyncThunk(
   'patients/delete',
   async (patientId: string, { rejectWithValue }) => {
     try {
+      const token = getToken();
       const response = await fetch(`http://localhost:8000/api/patients/${patientId}`, {
         method: 'DELETE',
         headers: {
@@ -185,6 +185,7 @@ export const fetchPatientById = createAsyncThunk(
   'patients/fetchById',
   async (patientId: string, { rejectWithValue }) => {
     try {
+      const token = getToken();
       const response = await fetch(`http://localhost:8000/api/patients/${patientId}`, {
         method: 'GET',
         headers: {
