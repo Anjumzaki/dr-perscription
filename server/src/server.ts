@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/auth';
 import prescriptionRoutes from './routes/prescriptions';
 import patientRoutes from './routes/patients';
+import appointmentRoutes from './routes/appointment';
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api/appointments', appointmentRoutes);
 app.use('/api/patients', patientRoutes);
 
 app.listen(PORT, '0.0.0.0', () => {

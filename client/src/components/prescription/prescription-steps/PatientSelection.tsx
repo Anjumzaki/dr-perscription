@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchPatients, createPatient, clearError } from '../../store/slices/patientSlice';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { fetchPatients, createPatient, clearError } from '../../../store/slices/patientSlice';
 
 interface Patient {
   id?: string;
@@ -22,7 +22,7 @@ interface PatientSelectionProps {
 const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onNext }) => {
   const dispatch = useAppDispatch();
   const { patients, isLoading, error: reduxError } = useAppSelector(state => state.patients);
-  
+
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,13 +56,13 @@ const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onN
       setError('Please select a patient or add a new one');
       return;
     }
-    
+
     if (isAddingNew) {
       if (!data.name.trim() || !data.phone.trim() || !data.age) {
         setError('Please fill in all required fields (Name, Age, Phone)');
         return;
       }
-      
+
       // Save new patient to database
       try {
         const newPatient = await dispatch(createPatient({
@@ -74,16 +74,16 @@ const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onN
           address: data.address,
           emergencyContact: data.emergencyContact,
         })).unwrap();
-        
+
         // Update the form data with the new patient ID
         onUpdate({ ...data, id: newPatient.id });
-        
+
       } catch (error) {
         setError(reduxError || 'Failed to save patient');
         return;
       }
     }
-    
+
     setError('');
     onNext();
   };
@@ -110,22 +110,20 @@ const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onN
         <button
           type="button"
           onClick={() => setIsAddingNew(false)}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            !isAddingNew
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${!isAddingNew
               ? 'bg-primary text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-          }`}
+            }`}
         >
           Select Existing Patient
         </button>
         <button
           type="button"
           onClick={() => setIsAddingNew(true)}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            isAddingNew
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${isAddingNew
               ? 'bg-primary text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-          }`}
+            }`}
         >
           Add New Patient
         </button>
@@ -161,9 +159,8 @@ const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onN
                 <div
                   key={patient.id}
                   onClick={() => handleSelectExistingPatient(patient)}
-                  className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors ${
-                    selectedPatientId === patient.id ? 'bg-primary/10 border-primary' : ''
-                  }`}
+                  className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors ${selectedPatientId === patient.id ? 'bg-primary/10 border-primary' : ''
+                    }`}
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -178,7 +175,7 @@ const PatientSelection: React.FC<PatientSelectionProps> = ({ data, onUpdate, onN
                     {selectedPatientId === patient.id && (
                       <div className="text-primary">
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       </div>
                     )}

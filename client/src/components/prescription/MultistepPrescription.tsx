@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { createPrescription, clearError } from '../store/slices/prescriptionSlice';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { createPrescription, clearError } from '../../store/slices/prescriptionSlice';
 
 // Step components
 import PatientSelection from './prescription-steps/PatientSelection';
@@ -22,7 +22,7 @@ interface PrescriptionData {
     address?: string;
     emergencyContact?: string;
   };
-  
+
   // Diagnosis
   diagnosis: {
     primaryDiagnosis: string;
@@ -32,7 +32,7 @@ interface PrescriptionData {
     severity: 'mild' | 'moderate' | 'severe';
     notes?: string;
   };
-  
+
   // Lifestyle Advice
   lifestyle: {
     dietaryAdvice: string[];
@@ -40,7 +40,7 @@ interface PrescriptionData {
     lifestyleModifications: string[];
     followUpInstructions: string;
   };
-  
+
   // Vitals and Tests
   vitals: {
     bloodPressure?: string;
@@ -51,14 +51,14 @@ interface PrescriptionData {
     bmi?: string;
     oxygenSaturation?: string;
   };
-  
+
   tests: {
     orderedTests: string[];
     labResults?: string[];
     imagingResults?: string[];
     testNotes?: string;
   };
-  
+
   // Prescription
   medications: {
     name: string;
@@ -73,7 +73,7 @@ const MultistepPrescription: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { isLoading, error: reduxError } = useAppSelector(state => state.prescriptions);
-  
+
   const [currentStep, setCurrentStep] = useState(1);
 
   const [prescriptionData, setPrescriptionData] = useState<PrescriptionData>({
@@ -171,7 +171,7 @@ const MultistepPrescription: React.FC = () => {
       console.log('Submitting prescription with payload:', prescriptionPayload);
 
       await dispatch(createPrescription(prescriptionPayload)).unwrap();
-      
+
       alert('Prescription created successfully!');
       navigate('/prescriptions');
     } catch (error) {
@@ -242,12 +242,12 @@ const MultistepPrescription: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
-              <Link 
-                to="/dashboard" 
+              <Link
+                to="/dashboard"
                 className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                 </svg>
                 Back to Dashboard
               </Link>
@@ -267,40 +267,37 @@ const MultistepPrescription: React.FC = () => {
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
-                <div 
-                  className={`flex items-center cursor-pointer ${
-                    currentStep >= step.id ? 'text-primary' : 'text-gray-400'
-                  }`}
+                <div
+                  className={`flex items-center cursor-pointer ${currentStep >= step.id ? 'text-primary' : 'text-gray-400'
+                    }`}
                   onClick={() => goToStep(step.id)}
                 >
                   <div className={`
                     flex items-center justify-center w-8 h-8 rounded-full border-2 text-sm font-medium
-                    ${currentStep >= step.id 
-                      ? 'bg-primary border-primary text-white' 
+                    ${currentStep >= step.id
+                      ? 'bg-primary border-primary text-white'
                       : 'border-gray-300 text-gray-400 bg-white dark:bg-gray-800'
                     }
                   `}>
                     {currentStep > step.id ? (
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     ) : (
                       step.id
                     )}
                   </div>
                   <div className="ml-3 hidden sm:block">
-                    <p className={`text-sm font-medium ${
-                      currentStep >= step.id ? 'text-gray-900 dark:text-white' : 'text-gray-400'
-                    }`}>
+                    <p className={`text-sm font-medium ${currentStep >= step.id ? 'text-gray-900 dark:text-white' : 'text-gray-400'
+                      }`}>
                       {step.title}
                     </p>
                     <p className="text-xs text-gray-500">{step.description}</p>
                   </div>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`flex-1 mx-4 h-0.5 ${
-                    currentStep > step.id ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'
-                  }`} />
+                  <div className={`flex-1 mx-4 h-0.5 ${currentStep > step.id ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'
+                    }`} />
                 )}
               </div>
             ))}

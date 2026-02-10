@@ -57,7 +57,7 @@ export interface IPrescription extends Document {
   doctorId: mongoose.Types.ObjectId;
   patientId?: mongoose.Types.ObjectId; // Reference to Patient document
   patient: IPrescriptionPatient;
-  diagnosis: IDiagnosis;
+  diagnosis: IDiagnosis[];
   lifestyle: ILifestyle;
   vitals: IVitals;
   tests: ITests;
@@ -255,10 +255,17 @@ const PrescriptionSchema: Schema = new Schema({
     type: PrescriptionPatientSchema,
     required: true
   },
-  diagnosis: {
-    type: DiagnosisSchema,
-    required: true
-  },
+diagnosis: {
+  type: [DiagnosisSchema],
+  required: true,
+  validate: {
+    validator: function (diagnoses: IDiagnosis[]) {
+      return diagnoses.length > 0;
+    },
+    message: 'At least one diagnosis is required'
+  }
+},
+
   lifestyle: {
     type: LifestyleSchema,
     required: true

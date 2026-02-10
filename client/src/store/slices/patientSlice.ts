@@ -49,30 +49,56 @@ const initialState: PatientState = {
   totalPages: 0,
 };
 
+const getToken = () => {
+  const root = localStorage.getItem('persist:root');
+  if (!root) return null;
+
+  try {
+    const parsedRoot = JSON.parse(root);
+    const auth = JSON.parse(parsedRoot.auth);
+    return auth.token || null;
+  } catch (err) {
+    console.error('Token parse error', err);
+    return null;
+  }
+};
+const token = getToken();
+
 // Async thunks for API calls
 export const fetchPatients = createAsyncThunk(
   'patients/fetchAll',
-  async (params: { search?: string; page?: number; limit?: number } = {}, { rejectWithValue }) => {
+  async (
+    params: { search?: string; page?: number; limit?: number } = {},
+    { rejectWithValue }
+  ) => {
     try {
       const queryParams = new URLSearchParams();
       if (params.search) queryParams.append('search', params.search);
       if (params.page) queryParams.append('page', params.page.toString());
       if (params.limit) queryParams.append('limit', params.limit.toString());
 
-      const response = await fetch(`http://localhost:8000/api/patients?${queryParams}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+     
+
+      if (!token) {
+        return rejectWithValue('Auth token missing');
+      }
+
+      const response = await fetch(
+        `http://localhost:8000/api/patients?${queryParams}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
         return rejectWithValue(errorData.message || 'Failed to fetch patients');
       }
 
-      const data = await response.json();
-      return data;
+      return await response.json();
     } catch (error) {
       return rejectWithValue('Network error occurred');
     }
@@ -87,7 +113,7 @@ export const createPatient = createAsyncThunk(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(patientData),
       });
@@ -114,7 +140,7 @@ export const updatePatient = createAsyncThunk(
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(updateData),
       });
@@ -139,7 +165,7 @@ export const deletePatient = createAsyncThunk(
       const response = await fetch(`http://localhost:8000/api/patients/${patientId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -162,7 +188,7 @@ export const fetchPatientById = createAsyncThunk(
       const response = await fetch(`http://localhost:8000/api/patients/${patientId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 

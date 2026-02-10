@@ -63,14 +63,21 @@ export interface PrescriptionData {
   notes?: string;
 }
 
+export interface Doctor {
+  name: string;
+  specialization?: string;
+  licenseNumber?: string;
+}
+
 export interface Prescription extends PrescriptionData {
   id: string;
   prescriptionNumber: string;
-  doctorId: string;
+  doctorId: string | Doctor; // <--- now can be string or full doctor object
   dateIssued: Date;
   createdAt: Date;
   updatedAt: Date;
 }
+
 
 interface PrescriptionState {
   prescriptions: Prescription[];
@@ -92,34 +99,75 @@ const initialState: PrescriptionState = {
   totalPages: 0,
 };
 
+
+const getToken = () => {
+  const root = localStorage.getItem('persist:root');
+  if (!root) return null;
+
+  try {
+    const parsedRoot = JSON.parse(root);
+    const auth = JSON.parse(parsedRoot.auth);
+    return auth.token || null;
+  } catch (err) {
+    console.error('Token parse error', err);
+    return null;
+  }
+};
+const token = getToken();
+
 // Async thunks for API calls
 export const fetchPrescriptions = createAsyncThunk(
   'prescriptions/fetchAll',
-  async (params: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
+
+  async (
+    params: { search?: string; page?: number; limit?: number } = {},
+    { rejectWithValue }
+  ) => {
     try {
       const queryParams = new URLSearchParams();
+
+      if (params.search) queryParams.append('search', params.search);
       if (params.page) queryParams.append('page', params.page.toString());
       if (params.limit) queryParams.append('limit', params.limit.toString());
 
-      const response = await fetch(`http://localhost:8000/api/prescriptions?${queryParams}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      if (!token) {
+        return rejectWithValue('Auth token missing');
+      }
+
+      const response = await fetch(
+        `http://localhost:8000/api/prescriptions?${queryParams}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        return rejectWithValue(errorData.message || 'Failed to fetch prescriptions');
+        return rejectWithValue(
+          errorData.message || 'Failed to fetch prescriptions'
+        );
       }
+const data = await response.json();
 
-      const data = await response.json();
-      return data;
+// Map _id to id for frontend convenience
+const prescriptionsWithId = data.prescriptions.map((p: any) => ({
+  ...p,
+  id: p._id,
+}));
+console.log('Fetched prescriptions with mapped IDs:', prescriptionsWithId);
+return { ...data, prescriptions: prescriptionsWithId };
+
+
     } catch (error) {
       return rejectWithValue('Network error occurred');
     }
   }
 );
+
+
 
 export const createPrescription = createAsyncThunk(
   'prescriptions/create',
@@ -129,7 +177,7 @@ export const createPrescription = createAsyncThunk(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(prescriptionData),
       });
@@ -155,7 +203,7 @@ export const updatePrescription = createAsyncThunk(
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(params.data),
       });
@@ -180,7 +228,7 @@ export const deletePrescription = createAsyncThunk(
       const response = await fetch(`http://localhost:8000/api/prescriptions/${prescriptionId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -203,7 +251,7 @@ export const fetchPrescriptionById = createAsyncThunk(
       const response = await fetch(`http://localhost:8000/api/prescriptions/${prescriptionId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -211,8 +259,9 @@ export const fetchPrescriptionById = createAsyncThunk(
         const errorData = await response.json();
         return rejectWithValue(errorData.message || 'Failed to fetch prescription');
       }
-
       const data = await response.json();
+            console.log('Fetch prescription by ID response:', data);
+
       return data.prescription;
     } catch (error) {
       return rejectWithValue('Network error occurred');

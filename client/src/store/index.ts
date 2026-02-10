@@ -5,6 +5,7 @@ import { combineReducers } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import patientReducer from './slices/patientSlice';
 import prescriptionReducer from './slices/prescriptionSlice';
+import appointmentReducer from './slices/appointmentSlice';
 import apiMiddleware from './middleware/apiMiddleware';
 
 const persistConfig = {
@@ -17,7 +18,9 @@ const rootReducer = combineReducers({
   auth: authReducer,
   patients: patientReducer,
   prescriptions: prescriptionReducer,
+  appointments: appointmentReducer, // ✅ add this
 });
+
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
