@@ -55,7 +55,7 @@ export interface Tests {
 
 export interface PrescriptionData {
   patient: PrescriptionPatient;
-  diagnosis: Diagnosis;
+  diagnosis: Diagnosis[];
   lifestyle: Lifestyle;
   vitals: Vitals;
   tests: Tests;

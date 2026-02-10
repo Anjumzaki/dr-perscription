@@ -23,7 +23,7 @@ interface PrescriptionData {
     emergencyContact?: string;
   };
 
-  // Diagnosis
+  // Diagnosis (array of multiple diagnoses)
   diagnosis: {
     primaryDiagnosis: string;
     secondaryDiagnosis?: string;
@@ -31,7 +31,7 @@ interface PrescriptionData {
     duration: string;
     severity: 'mild' | 'moderate' | 'severe';
     notes?: string;
-  };
+  }[];
 
   // Lifestyle Advice
   lifestyle: {
@@ -86,14 +86,7 @@ const MultistepPrescription: React.FC = () => {
       address: '',
       emergencyContact: ''
     },
-    diagnosis: {
-      primaryDiagnosis: '',
-      secondaryDiagnosis: '',
-      symptoms: [],
-      duration: '',
-      severity: 'mild',
-      notes: ''
-    },
+    diagnosis: [],
     lifestyle: {
       dietaryAdvice: [],
       exerciseRecommendations: [],
@@ -131,7 +124,7 @@ const MultistepPrescription: React.FC = () => {
   const updatePrescriptionData = (section: keyof PrescriptionData, data: any) => {
     setPrescriptionData(prev => ({
       ...prev,
-      [section]: section === 'medications' ? data : { ...prev[section], ...data }
+      [section]: (section === 'medications' || section === 'diagnosis') ? data : { ...prev[section], ...data }
     }));
   };
 

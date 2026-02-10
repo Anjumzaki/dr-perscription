@@ -205,7 +205,9 @@ const PrescriptionList: React.FC = () => {
 
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate">
-                          {prescription?.diagnosis?.primaryDiagnosis || '—'}
+                          {Array.isArray(prescription?.diagnosis)
+                            ? prescription.diagnosis.map((d: any) => d.primaryDiagnosis).join(', ') || '—'
+                            : (prescription?.diagnosis as any)?.primaryDiagnosis || '—'}
                         </div>
                       </td>
 

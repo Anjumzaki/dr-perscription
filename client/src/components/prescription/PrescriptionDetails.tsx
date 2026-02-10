@@ -89,21 +89,27 @@ const PrescriptionDetails: React.FC = () => {
           {/* DIAGNOSIS */}
           <section>
             <h2 className="text-xl font-semibold mb-2">Diagnosis</h2>
-
-            <p>Primary: {prescription.diagnosis.primaryDiagnosis}</p>
-            {prescription.diagnosis.secondaryDiagnosis && (
-              <p>Secondary: {prescription.diagnosis.secondaryDiagnosis}</p>
-            )}
-
-            <p>Duration: {prescription.diagnosis.duration}</p>
-            <p>Severity: {prescription.diagnosis.severity}</p>
-
-            <p className="mt-2 font-medium">Symptoms:</p>
-            <ul className="list-disc ml-6">
-              {prescription.diagnosis.symptoms.map((s, i) => (
-                <li key={i}>{s}</li>
-              ))}
-            </ul>
+            {(Array.isArray(prescription.diagnosis) ? prescription.diagnosis : [prescription.diagnosis]).map((diag: any, idx: number) => (
+              <div key={idx} className={`${idx > 0 ? 'mt-4 pt-4 border-t border-gray-200 dark:border-gray-700' : ''}`}>
+                <p>Primary: {diag.primaryDiagnosis}</p>
+                {diag.secondaryDiagnosis && (
+                  <p>Secondary: {diag.secondaryDiagnosis}</p>
+                )}
+                {diag.duration && <p>Duration: {diag.duration}</p>}
+                <p>Severity: {diag.severity}</p>
+                {diag.notes && <p className="text-sm text-gray-500 mt-1">{diag.notes}</p>}
+                {diag.symptoms && diag.symptoms.length > 0 && (
+                  <>
+                    <p className="mt-2 font-medium">Symptoms:</p>
+                    <ul className="list-disc ml-6">
+                      {diag.symptoms.map((s: string, i: number) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            ))}
           </section>
 
 
