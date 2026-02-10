@@ -86,97 +86,160 @@ const LifestyleAdvice: React.FC<LifestyleAdviceProps> = ({ data, onUpdate, onNex
     onNext();
   };
 
-return (
-  <div className="p-6">
-    <div className="mb-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-        Lifestyle Advice
-      </h2>
-      <p className="text-gray-600 dark:text-gray-400">
-        Provide dietary advice, exercise recommendations, and lifestyle modifications
-      </p>
-    </div>
+  return (
+    <div className="p-6">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          Lifestyle Advice
+        </h2>
+        <p className="text-gray-600 dark:text-gray-400">
+          Provide dietary advice, exercise recommendations, and lifestyle modifications
+        </p>
+      </div>
 
-    {/* ===== GRID LAYOUT ===== */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* ===== GRID LAYOUT ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-      {/* ===== DIETARY ADVICE BOX ===== */}
-      <div className="bg-white dark:bg-gray-800 border rounded-xl p-4 shadow-sm">
-        <h3 className="font-semibold mb-3">Dietary Advice</h3>
+        {/* ===== DIETARY ADVICE BOX ===== */}
+        <div className="bg-white dark:bg-gray-800 border rounded-xl p-4 shadow-sm">
+          <h3 className="font-semibold mb-3">Dietary Advice</h3>
 
-        <div className="flex gap-2 mb-3">
-          <input
-            type="text"
-            value={newDietAdvice}
-            onChange={(e) => setNewDietAdvice(e.target.value)}
-            onKeyPress={(e) =>
-              e.key === 'Enter' &&
-              addToArray('dietaryAdvice', newDietAdvice, setNewDietAdvice)
-            }
-            className="flex-1 px-3 py-2 border rounded-md"
-            placeholder="Enter dietary advice"
-          />
-          <button
-            type="button"
-            onClick={() =>
-              addToArray('dietaryAdvice', newDietAdvice, setNewDietAdvice)
-            }
-            className="px-4 py-2 bg-primary text-white rounded-md"
-          >
-            Add
-          </button>
-        </div>
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              value={newDietAdvice}
+              onChange={(e) => setNewDietAdvice(e.target.value)}
+              onKeyPress={(e) =>
+                e.key === 'Enter' &&
+                addToArray('dietaryAdvice', newDietAdvice, setNewDietAdvice)
+              }
+              className="flex-1 px-3 py-2 border rounded-md"
+              placeholder="Enter dietary advice"
+            />
+            <button
+              type="button"
+              onClick={() =>
+                addToArray('dietaryAdvice', newDietAdvice, setNewDietAdvice)
+              }
+              className="px-4 py-2 bg-primary text-white rounded-md"
+            >
+              Add
+            </button>
+          </div>
 
-        {/* QUICK ADD - DIET */}
-        <div className="mb-3">
-          <p className="text-xs mb-2">Quick add:</p>
+          {/* QUICK ADD - DIET */}
+          <div className="mb-3">
+            <p className="text-xs mb-2">Quick add:</p>
+            <div className="flex flex-wrap gap-2">
+              {commonDietaryAdvice.slice(0, 8).map((advice) => (
+                <button
+                  key={advice}
+                  type="button"
+                  onClick={() => addQuickAdvice('dietaryAdvice', advice)}
+                  disabled={data.dietaryAdvice.includes(advice)}
+                  className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700"
+                >
+                  {advice}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* SELECTED */}
           <div className="flex flex-wrap gap-2">
-            {commonDietaryAdvice.slice(0, 8).map((advice) => (
-              <button
-                key={advice}
-                type="button"
-                onClick={() => addQuickAdvice('dietaryAdvice', advice)}
-                disabled={data.dietaryAdvice.includes(advice)}
-                className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700"
-              >
+            {data.dietaryAdvice.map((advice, index) => (
+              <div key={index} className="px-3 py-1 bg-blue-100 rounded-full">
                 {advice}
-              </button>
+                <button onClick={() => removeFromArray('dietaryAdvice', index)}>
+                  ✕
+                </button>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* SELECTED */}
-        <div className="flex flex-wrap gap-2">
-          {data.dietaryAdvice.map((advice, index) => (
-            <div key={index} className="px-3 py-1 bg-blue-100 rounded-full">
-              {advice}
-              <button onClick={() => removeFromArray('dietaryAdvice', index)}>
-                ✕
-              </button>
+        {/* ===== EXERCISE BOX ===== */}
+        <div className="bg-white dark:bg-gray-800 border rounded-xl p-4 shadow-sm">
+          <h3 className="font-semibold mb-3">Exercise Recommendations</h3>
+
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              value={newExerciseRec}
+              onChange={(e) => setNewExerciseRec(e.target.value)}
+              onKeyPress={(e) =>
+                e.key === 'Enter' &&
+                addToArray('exerciseRecommendations', newExerciseRec, setNewExerciseRec)
+              }
+              className="flex-1 px-3 py-2 border rounded-md"
+            />
+            <button
+              type="button"
+              onClick={() =>
+                addToArray('exerciseRecommendations', newExerciseRec, setNewExerciseRec)
+              }
+              className="px-4 py-2 bg-primary text-white"
+            >
+              Add
+            </button>
+          </div>
+
+          {/* QUICK ADD - EXERCISE */}
+          <div className="mb-3">
+            <p className="text-xs mb-2">Quick add:</p>
+            <div className="flex flex-wrap gap-2">
+              {commonExerciseRecommendations.slice(0, 8).map((rec) => (
+                <button
+                  key={rec}
+                  type="button"
+                  onClick={() =>
+                    addQuickAdvice('exerciseRecommendations', rec)
+                  }
+                  disabled={data.exerciseRecommendations.includes(rec)}
+                  className="px-2 py-1 text-xs rounded-full bg-green-100"
+                >
+                  {rec}
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {data.exerciseRecommendations.map((rec, index) => (
+              <div key={index} className="px-3 py-1 bg-green-100 rounded-full">
+                {rec}
+                <button onClick={() =>
+                  removeFromArray('exerciseRecommendations', index)
+                }>
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* ===== EXERCISE BOX ===== */}
-      <div className="bg-white dark:bg-gray-800 border rounded-xl p-4 shadow-sm">
-        <h3 className="font-semibold mb-3">Exercise Recommendations</h3>
+      {/* ===== FULL WIDTH ===== */}
+      <div className="mt-6 bg-white dark:bg-gray-800 border rounded-xl p-4">
+
+        <h3 className="font-semibold mb-3">
+          Lifestyle Modifications & Follow-up
+        </h3>
 
         <div className="flex gap-2 mb-3">
           <input
             type="text"
-            value={newExerciseRec}
-            onChange={(e) => setNewExerciseRec(e.target.value)}
+            value={newLifestyleMod}
+            onChange={(e) => setNewLifestyleMod(e.target.value)}
             onKeyPress={(e) =>
               e.key === 'Enter' &&
-              addToArray('exerciseRecommendations', newExerciseRec, setNewExerciseRec)
+              addToArray('lifestyleModifications', newLifestyleMod, setNewLifestyleMod)
             }
             className="flex-1 px-3 py-2 border rounded-md"
           />
           <button
-            type="button"
             onClick={() =>
-              addToArray('exerciseRecommendations', newExerciseRec, setNewExerciseRec)
+              addToArray('lifestyleModifications', newLifestyleMod, setNewLifestyleMod)
             }
             className="px-4 py-2 bg-primary text-white"
           >
@@ -184,122 +247,59 @@ return (
           </button>
         </div>
 
-        {/* QUICK ADD - EXERCISE */}
+        {/* QUICK ADD - LIFESTYLE */}
         <div className="mb-3">
           <p className="text-xs mb-2">Quick add:</p>
           <div className="flex flex-wrap gap-2">
-            {commonExerciseRecommendations.slice(0, 8).map((rec) => (
+            {commonLifestyleModifications.slice(0, 8).map((mod) => (
               <button
-                key={rec}
-                type="button"
+                key={mod}
                 onClick={() =>
-                  addQuickAdvice('exerciseRecommendations', rec)
+                  addQuickAdvice('lifestyleModifications', mod)
                 }
-                disabled={data.exerciseRecommendations.includes(rec)}
-                className="px-2 py-1 text-xs rounded-full bg-green-100"
+                disabled={data.lifestyleModifications.includes(mod)}
+                className="px-2 py-1 text-xs rounded-full bg-purple-100"
               >
-                {rec}
+                {mod}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {data.exerciseRecommendations.map((rec, index) => (
-            <div key={index} className="px-3 py-1 bg-green-100 rounded-full">
-              {rec}
-              <button onClick={() =>
-                removeFromArray('exerciseRecommendations', index)
-              }>
+        <div className="flex flex-wrap gap-2 mb-6">
+          {data.lifestyleModifications.map((mod, index) => (
+            <div key={index} className="px-3 py-1 bg-purple-100 rounded-full">
+              {mod}
+              <button
+                onClick={() =>
+                  removeFromArray('lifestyleModifications', index)
+                }
+              >
                 ✕
               </button>
             </div>
           ))}
         </div>
-      </div>
-    </div>
 
-    {/* ===== FULL WIDTH ===== */}
-    <div className="mt-6 bg-white dark:bg-gray-800 border rounded-xl p-4">
+        <label className="block mb-2">Follow-up Instructions *</label>
 
-      <h3 className="font-semibold mb-3">
-        Lifestyle Modifications & Follow-up
-      </h3>
-
-      <div className="flex gap-2 mb-3">
-        <input
-          type="text"
-          value={newLifestyleMod}
-          onChange={(e) => setNewLifestyleMod(e.target.value)}
-          onKeyPress={(e) =>
-            e.key === 'Enter' &&
-            addToArray('lifestyleModifications', newLifestyleMod, setNewLifestyleMod)
+        <textarea
+          value={data.followUpInstructions}
+          onChange={(e) =>
+            onUpdate({ followUpInstructions: e.target.value })
           }
-          className="flex-1 px-3 py-2 border rounded-md"
+          rows={4}
+          className="w-full px-3 py-2 border rounded-md"
         />
-        <button
-          onClick={() =>
-            addToArray('lifestyleModifications', newLifestyleMod, setNewLifestyleMod)
-          }
-          className="px-4 py-2 bg-primary text-white"
-        >
-          Add
-        </button>
       </div>
 
-      {/* QUICK ADD - LIFESTYLE */}
-      <div className="mb-3">
-        <p className="text-xs mb-2">Quick add:</p>
-        <div className="flex flex-wrap gap-2">
-          {commonLifestyleModifications.slice(0, 8).map((mod) => (
-            <button
-              key={mod}
-              onClick={() =>
-                addQuickAdvice('lifestyleModifications', mod)
-              }
-              disabled={data.lifestyleModifications.includes(mod)}
-              className="px-2 py-1 text-xs rounded-full bg-purple-100"
-            >
-              {mod}
-            </button>
-          ))}
-        </div>
+      {/* NAV */}
+      <div className="flex justify-between mt-6">
+        <button onClick={onPrev}>Previous</button>
+        <button onClick={handleNext}>Next</button>
       </div>
-
-      <div className="flex flex-wrap gap-2 mb-6">
-        {data.lifestyleModifications.map((mod, index) => (
-          <div key={index} className="px-3 py-1 bg-purple-100 rounded-full">
-            {mod}
-            <button
-              onClick={() =>
-                removeFromArray('lifestyleModifications', index)
-              }
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <label className="block mb-2">Follow-up Instructions</label>
-
-      <textarea
-        value={data.followUpInstructions}
-        onChange={(e) =>
-          onUpdate({ followUpInstructions: e.target.value })
-        }
-        rows={4}
-        className="w-full px-3 py-2 border rounded-md"
-      />
     </div>
-
-    {/* NAV */}
-    <div className="flex justify-between mt-6">
-      <button onClick={onPrev}>Previous</button>
-      <button onClick={handleNext}>Next</button>
-    </div>
-  </div>
-);
+  );
 
 
 };
