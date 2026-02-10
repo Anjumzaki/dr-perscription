@@ -21,6 +21,11 @@ interface PrescriptionData {
     email?: string;
     address?: string;
     emergencyContact?: string;
+    allergies?: string;
+    comorbidities?: string;
+    smokingHistory?: string;
+    occupationalExposure?: string;
+    insuranceId?: string;
   };
 
   // Diagnosis (array of multiple diagnoses)
@@ -50,6 +55,7 @@ interface PrescriptionData {
     height?: string;
     bmi?: string;
     oxygenSaturation?: string;
+    respiratoryRate?: string;
   };
 
   tests: {
@@ -84,7 +90,12 @@ const MultistepPrescription: React.FC = () => {
       phone: '',
       email: '',
       address: '',
-      emergencyContact: ''
+      emergencyContact: '',
+      allergies: '',
+      comorbidities: '',
+      smokingHistory: '',
+      occupationalExposure: '',
+      insuranceId: ''
     },
     diagnosis: [],
     lifestyle: {
@@ -100,7 +111,8 @@ const MultistepPrescription: React.FC = () => {
       weight: '',
       height: '',
       bmi: '',
-      oxygenSaturation: ''
+      oxygenSaturation: '',
+      respiratoryRate: ''
     },
     tests: {
       orderedTests: [],

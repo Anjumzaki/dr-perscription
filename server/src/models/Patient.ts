@@ -8,6 +8,11 @@ export interface IPatient extends Document {
   email?: string;
   address?: string;
   emergencyContact?: string;
+  allergies?: string;
+  comorbidities?: string;
+  smokingHistory?: string;
+  occupationalExposure?: string;
+  insuranceId?: string;
   doctorId: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -53,6 +58,26 @@ const PatientSchema: Schema = new Schema({
     trim: true
   },
   emergencyContact: {
+    type: String,
+    trim: true
+  },
+  allergies: {
+    type: String,
+    trim: true
+  },
+  comorbidities: {
+    type: String,
+    trim: true
+  },
+  smokingHistory: {
+    type: String,
+    trim: true
+  },
+  occupationalExposure: {
+    type: String,
+    trim: true
+  },
+  insuranceId: {
     type: String,
     trim: true
   },

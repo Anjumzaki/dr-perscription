@@ -38,6 +38,8 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
   const [icdCode, setIcdCode] = useState('');
   const [diagnosisText, setDiagnosisText] = useState('');
   const [severity, setSeverity] = useState<'mild' | 'moderate' | 'severe'>('mild');
+  const [duration, setDuration] = useState('');
+  const [symptoms, setSymptoms] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
 
@@ -49,11 +51,16 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
       return;
     }
 
+    if (!duration.trim()) {
+      setError('Please enter the duration of the condition.');
+      return;
+    }
+
     const newDiagnosis: DiagnosisEntry = {
       primaryDiagnosis: icdCode ? icdCode : diagnosisText.trim(),
       secondaryDiagnosis: icdCode ? diagnosisText.trim() || undefined : undefined,
-      symptoms: [],
-      duration: '',
+      symptoms: symptoms.trim() ? symptoms.split(',').map(s => s.trim()).filter(Boolean) : [],
+      duration: duration.trim(),
       severity,
       notes: notes.trim() || undefined,
     };
@@ -64,6 +71,8 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
     setIcdCode('');
     setDiagnosisText('');
     setSeverity('mild');
+    setDuration('');
+    setSymptoms('');
     setNotes('');
     setError('');
   };
@@ -133,6 +142,36 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
                     value={diagnosisText}
                     onChange={(e) => setDiagnosisText(e.target.value)}
                     placeholder="e.g., Acute Bronchitis"
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-700 dark:text-white px-3 py-2"
+                  />
+                </div>
+              </div>
+
+              {/* Duration + Symptoms Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="duration">
+                    Duration *
+                  </label>
+                  <input
+                    id="duration"
+                    type="text"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    placeholder="e.g., 3 days, 2 weeks, 1 month"
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-700 dark:text-white px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="symptoms">
+                    Symptoms
+                  </label>
+                  <input
+                    id="symptoms"
+                    type="text"
+                    value={symptoms}
+                    onChange={(e) => setSymptoms(e.target.value)}
+                    placeholder="e.g., Cough, Fever, Headache (comma separated)"
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-700 dark:text-white px-3 py-2"
                   />
                 </div>
@@ -222,9 +261,25 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
                             {diagnosis.secondaryDiagnosis}
                           </p>
                         )}
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Severity: <span className="font-medium text-gray-900 dark:text-white">{getSeverityLabel(diagnosis.severity)}</span>
-                        </p>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Severity: <span className="font-medium text-gray-900 dark:text-white">{getSeverityLabel(diagnosis.severity)}</span>
+                          </p>
+                          {diagnosis.duration && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Duration: <span className="font-medium text-gray-900 dark:text-white">{diagnosis.duration}</span>
+                            </p>
+                          )}
+                        </div>
+                        {diagnosis.symptoms && diagnosis.symptoms.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {diagnosis.symptoms.map((symptom, i) => (
+                              <span key={i} className="inline-block px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                                {symptom}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         {diagnosis.notes && (
                           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                             {diagnosis.notes}

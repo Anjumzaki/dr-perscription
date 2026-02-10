@@ -6,6 +6,8 @@ interface Medication {
   frequency: string;
   duration: string;
   instructions?: string;
+  route?: string;
+  notes?: string;
 }
 
 interface WritePrescriptionProps {
@@ -17,6 +19,26 @@ interface WritePrescriptionProps {
   error: string;
 }
 
+const strengthOptions = ['5mg', '10mg', '20mg', '25mg', '50mg', '100mg', '200mg', '250mg', '500mg', '750mg', '1000mg', '100mcg', '200mcg'];
+const doseOptions = ['1 tablet', '2 tablets', '1 capsule', '2 capsules', '1 puff', '2 puffs', '5ml', '10ml', '5 units', '10 units'];
+const frequencyOptions = ['Once a day', 'Twice a day', 'Three times a day', 'Four times a day', 'Every 4 hours', 'Every 6 hours', 'Every 8 hours', 'Every 12 hours', 'Before meals', 'After meals', 'At bedtime', 'As needed'];
+const durationOptions = ['3 days', '5 days', '7 days', '10 days', '14 days', '21 days', '30 days', '1 month', '2 months', '3 months', 'Until finished', 'As directed'];
+const routeOptions = [
+  { value: 'Oral', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z' },
+  { value: 'Inhaler', icon: '' },
+  { value: 'Nebulizer', icon: '' },
+  { value: 'Injection', icon: '' },
+  { value: 'Topical', icon: '' },
+  { value: 'IV', icon: '' },
+];
+
+const commonMedicines = [
+  'Paracetamol', 'Ibuprofen', 'Aspirin', 'Amoxicillin', 'Azithromycin',
+  'Omeprazole', 'Metformin', 'Amlodipine', 'Atorvastatin', 'Levothyroxine',
+  'Cetirizine', 'Loratadine', 'Pantoprazole', 'Salbutamol Inhaler', 'Insulin',
+  'Clopidogrel', 'Lisinopril', 'Montelukast', 'Prednisolone', 'Dexamethasone',
+];
+
 const WritePrescription: React.FC<WritePrescriptionProps> = ({
   data,
   onUpdate,
@@ -25,328 +47,377 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
   loading,
   error
 }) => {
-  // Ensure data is always an array
   const medications = Array.isArray(data) ? data : [];
-  const [newMedication, setNewMedication] = useState<Medication>({
-    name: '',
-    dosage: '',
-    frequency: '',
-    duration: '',
-    instructions: ''
-  });
+
+  const [searchMedicine, setSearchMedicine] = useState('');
+  const [strength, setStrength] = useState(strengthOptions[7]); // 500mg
+  const [dose, setDose] = useState(doseOptions[0]); // 1 tablet
+  const [frequency, setFrequency] = useState(frequencyOptions[1]); // Twice a day
+  const [duration, setDuration] = useState(durationOptions[2]); // 7 days
+  const [route, setRoute] = useState('Oral');
+  const [instructionsEn, setInstructionsEn] = useState('');
+  const [instructionsUr, setInstructionsUr] = useState('');
+  const [pharmacistNotes, setPharmacistNotes] = useState('');
   const [formError, setFormError] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
 
-  const commonMedications = [
-    'Paracetamol', 'Ibuprofen', 'Aspirin', 'Amoxicillin', 'Azithromycin',
-    'Omeprazole', 'Metformin', 'Amlodipine', 'Atorvastatin', 'Levothyroxine',
-    'Cetirizine', 'Loratadine', 'Pantoprazole', 'Clopidogrel', 'Lisinopril'
-  ];
+  const filteredMedicines = searchMedicine.trim()
+    ? commonMedicines.filter(m => m.toLowerCase().includes(searchMedicine.toLowerCase()))
+    : [];
 
-  const commonDosages = [
-    '250mg', '500mg', '750mg', '1g', '2.5mg', '5mg', '10mg', '20mg', '25mg', 
-    '50mg', '100mg', '200mg', '1 tablet', '2 tablets', '1 capsule', '2 capsules'
-  ];
-
-  const commonFrequencies = [
-    'Once daily', 'Twice daily', 'Three times daily', 'Four times daily',
-    'Every 4 hours', 'Every 6 hours', 'Every 8 hours', 'Every 12 hours',
-    'Before meals', 'After meals', 'At bedtime', 'As needed'
-  ];
-
-  const commonDurations = [
-    '3 days', '5 days', '7 days', '10 days', '14 days', '21 days', '30 days',
-    '1 month', '2 months', '3 months', 'Until finished', 'As directed'
-  ];
-
-  const handleInputChange = (field: keyof Medication, value: string) => {
-    setNewMedication(prev => ({ ...prev, [field]: value }));
+  const selectMedicine = (name: string) => {
+    setSearchMedicine(name);
+    setSearchFocused(false);
   };
 
   const addMedication = () => {
-    if (!newMedication.name.trim() || !newMedication.dosage.trim() || 
-        !newMedication.frequency.trim() || !newMedication.duration.trim()) {
-      setFormError('Please fill in all required fields (Name, Dosage, Frequency, Duration)');
+    if (!searchMedicine.trim()) {
+      setFormError('Please enter or search for a medicine name.');
       return;
     }
 
-    onUpdate([...medications, { ...newMedication }]);
-    setNewMedication({
-      name: '',
-      dosage: '',
-      frequency: '',
-      duration: '',
-      instructions: ''
-    });
+    const instructionParts = [instructionsEn, instructionsUr].filter(Boolean);
+    const newMed: Medication = {
+      name: searchMedicine.trim(),
+      dosage: `${strength}, ${dose}`,
+      frequency,
+      duration,
+      route,
+      instructions: instructionParts.length > 0 ? instructionParts.join(' | ') : undefined,
+      notes: pharmacistNotes || undefined,
+    };
+
+    onUpdate([...medications, newMed]);
+
+    // Reset form
+    setSearchMedicine('');
+    setStrength(strengthOptions[7]);
+    setDose(doseOptions[0]);
+    setFrequency(frequencyOptions[1]);
+    setDuration(durationOptions[2]);
+    setRoute('Oral');
+    setInstructionsEn('');
+    setInstructionsUr('');
+    setPharmacistNotes('');
     setFormError('');
   };
 
   const removeMedication = (index: number) => {
-    const updatedMedications = medications.filter((_, i) => i !== index);
-    onUpdate(updatedMedications);
-  };
-
-  const editMedication = (index: number, field: keyof Medication, value: string) => {
-    const updatedMedications = medications.map((med, i) => 
-      i === index ? { ...med, [field]: value } : med
-    );
-    onUpdate(updatedMedications);
+    onUpdate(medications.filter((_, i) => i !== index));
   };
 
   const handleSubmit = () => {
     if (medications.length === 0) {
-      setFormError('Please add at least one medication to create the prescription');
+      setFormError('Please add at least one medication to create the prescription.');
       return;
     }
     setFormError('');
     onSubmit();
   };
 
+  const getRouteIcon = (r: string) => {
+    switch (r) {
+      case 'Oral': return 'pill';
+      case 'Inhaler': return 'air';
+      case 'Nebulizer': return 'airwave';
+      case 'Injection': return 'syringe';
+      case 'Topical': return 'water_drop';
+      case 'IV': return 'iv_bag';
+      default: return 'medication';
+    }
+  };
+
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Write Prescription
-        </h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Add medications, dosages, and instructions for the patient
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Write Prescription Form */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+                Write Prescription
+              </h1>
 
-      {(error || formError) && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-600 text-sm">{error || formError}</p>
-        </div>
-      )}
+              {(error || formError) && (
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                  <p className="text-red-600 dark:text-red-400 text-sm">{error || formError}</p>
+                </div>
+              )}
 
-      {/* Add New Medication Form */}
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Add Medication
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Medication Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Medication Name *
-            </label>
-            <input
-              type="text"
-              value={newMedication.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="Enter medication name"
-              list="common-medications"
-            />
-            <datalist id="common-medications">
-              {commonMedications.map((med) => (
-                <option key={med} value={med} />
-              ))}
-            </datalist>
-          </div>
-
-          {/* Dosage */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Dosage *
-            </label>
-            <input
-              type="text"
-              value={newMedication.dosage}
-              onChange={(e) => handleInputChange('dosage', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="e.g., 500mg, 1 tablet"
-              list="common-dosages"
-            />
-            <datalist id="common-dosages">
-              {commonDosages.map((dosage) => (
-                <option key={dosage} value={dosage} />
-              ))}
-            </datalist>
-          </div>
-
-          {/* Frequency */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Frequency *
-            </label>
-            <input
-              type="text"
-              value={newMedication.frequency}
-              onChange={(e) => handleInputChange('frequency', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="e.g., Twice daily, Every 8 hours"
-              list="common-frequencies"
-            />
-            <datalist id="common-frequencies">
-              {commonFrequencies.map((freq) => (
-                <option key={freq} value={freq} />
-              ))}
-            </datalist>
-          </div>
-
-          {/* Duration */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Duration *
-            </label>
-            <input
-              type="text"
-              value={newMedication.duration}
-              onChange={(e) => handleInputChange('duration', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="e.g., 7 days, 2 weeks"
-              list="common-durations"
-            />
-            <datalist id="common-durations">
-              {commonDurations.map((duration) => (
-                <option key={duration} value={duration} />
-              ))}
-            </datalist>
-          </div>
-
-          {/* Instructions */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Special Instructions (Optional)
-            </label>
-            <textarea
-              value={newMedication.instructions}
-              onChange={(e) => handleInputChange('instructions', e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="e.g., Take with food, Avoid alcohol, Take on empty stomach"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end mt-4">
-          <button
-            onClick={addMedication}
-            className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
-          >
-            Add Medication
-          </button>
-        </div>
-      </div>
-
-      {/* Prescribed Medications List */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Prescribed Medications ({medications.length})
-        </h3>
-        
-        {medications.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            <p className="mt-2">No medications added yet</p>
-            <p className="text-sm">Add medications using the form above</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {medications.map((medication, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4 dark:border-gray-600">
-                <div className="flex justify-between items-start mb-3">
-                  <h4 className="text-lg font-medium text-gray-900 dark:text-white">
-                    {medication.name}
-                  </h4>
-                  <button
-                    onClick={() => removeMedication(index)}
-                    className="text-red-500 hover:text-red-700 dark:hover:text-red-400"
-                    title="Remove medication"
-                  >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/>
+              <div className="space-y-6">
+                {/* Search Medicine */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">
+                    Search Medicine
+                  </label>
+                  <div className="relative">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Dosage
-                    </label>
                     <input
                       type="text"
-                      value={medication.dosage}
-                      onChange={(e) => editMedication(index, 'dosage', e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      value={searchMedicine}
+                      onChange={(e) => setSearchMedicine(e.target.value)}
+                      onFocus={() => setSearchFocused(true)}
+                      onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary focus:border-primary placeholder:text-gray-400"
+                      placeholder="Search by brand or generic name"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Frequency
-                    </label>
-                    <input
-                      type="text"
-                      value={medication.frequency}
-                      onChange={(e) => editMedication(index, 'frequency', e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Duration
-                    </label>
-                    <input
-                      type="text"
-                      value={medication.duration}
-                      onChange={(e) => editMedication(index, 'duration', e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    />
+                    {/* Search Dropdown */}
+                    {searchFocused && filteredMedicines.length > 0 && (
+                      <div className="absolute z-20 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {filteredMedicines.map((med) => (
+                          <button
+                            key={med}
+                            type="button"
+                            onMouseDown={() => selectMedicine(med)}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            {med}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-                
-                {medication.instructions && (
+
+                {/* Strength / Dose / Frequency / Duration */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Instructions
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">Strength</label>
+                    <select
+                      value={strength}
+                      onChange={(e) => setStrength(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-primary focus:border-primary px-3 py-2.5"
+                    >
+                      {strengthOptions.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">Dose</label>
+                    <select
+                      value={dose}
+                      onChange={(e) => setDose(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-primary focus:border-primary px-3 py-2.5"
+                    >
+                      {doseOptions.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">Frequency</label>
+                    <select
+                      value={frequency}
+                      onChange={(e) => setFrequency(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-primary focus:border-primary px-3 py-2.5"
+                    >
+                      {frequencyOptions.map((f) => (
+                        <option key={f} value={f}>{f}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">Duration</label>
+                    <select
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-primary focus:border-primary px-3 py-2.5"
+                    >
+                      {durationOptions.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Route */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2">Route</label>
+                  <div className="flex flex-wrap gap-3">
+                    {routeOptions.map((r) => (
+                      <label
+                        key={r.value}
+                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-md border text-sm transition-colors ${
+                          route === r.value
+                            ? 'bg-primary text-white border-primary'
+                            : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-primary/50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="route"
+                          value={r.value}
+                          checked={route === r.value}
+                          onChange={() => setRoute(r.value)}
+                          className="hidden"
+                        />
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
+                        {r.value}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">
+                      Instructions (English)
                     </label>
                     <textarea
-                      value={medication.instructions}
-                      onChange={(e) => editMedication(index, 'instructions', e.target.value)}
-                      rows={2}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      value={instructionsEn}
+                      onChange={(e) => setInstructionsEn(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-primary focus:border-primary px-3 py-2"
+                      placeholder="e.g., Take with food"
+                      rows={3}
                     />
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">
+                      Instructions (اردو)
+                    </label>
+                    <textarea
+                      value={instructionsUr}
+                      onChange={(e) => setInstructionsUr(e.target.value)}
+                      dir="rtl"
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm text-right focus:ring-primary focus:border-primary px-3 py-2"
+                      placeholder="مثال کے طور پر، کھانے کے ساتھ لیں"
+                      rows={3}
+                    />
+                  </div>
+                </div>
 
-      {/* Navigation */}
-      <div className="flex justify-between pt-6 border-t border-gray-200 dark:border-gray-600">
-        <button
-          onClick={onPrev}
-          className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
-        >
-          Previous: Vitals & Tests
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-            loading
-              ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              : 'bg-green-600 text-white hover:bg-green-700'
-          }`}
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-              </svg>
-              Creating Prescription...
-            </span>
-          ) : (
-            'Create Prescription'
-          )}
-        </button>
+                {/* Notes for Pharmacist */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">
+                    Notes for Pharmacist/Patient
+                  </label>
+                  <textarea
+                    value={pharmacistNotes}
+                    onChange={(e) => setPharmacistNotes(e.target.value)}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-primary focus:border-primary px-3 py-2"
+                    placeholder="e.g., Use spacer, Rinse mouth after inhaler"
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              {/* Add Medicine Button */}
+              <div className="flex justify-end pt-6">
+                <button
+                  type="button"
+                  onClick={addMedication}
+                  className="px-6 py-2 rounded-md bg-primary text-white hover:bg-primary/90 transition-colors flex items-center gap-2 font-semibold"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Medicine
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Current Prescription & Actions */}
+          <div className="space-y-6">
+            {/* Current Prescription List */}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Current Prescription</h2>
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  {medications.length} Medicine{medications.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {medications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-8 text-center">
+                  <svg className="w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-gray-900 dark:text-white text-sm font-semibold">No medicines added yet</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs">Use the form to add medicines to the prescription.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {medications.map((med, index) => (
+                    <div key={index} className="flex items-start gap-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700">
+                      <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 dark:text-white">{med.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {med.dosage}, {med.frequency}{med.duration ? ` for ${med.duration}` : ''}
+                        </p>
+                        {med.route && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Route: {med.route}</p>
+                        )}
+                        {med.instructions && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Note: {med.instructions}</p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeMedication(index)}
+                        className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={onPrev}
+                className="flex-1 px-6 py-3 rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-semibold flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Previous
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className={`flex-1 px-6 py-3 rounded-md font-semibold flex items-center justify-center gap-2 transition-colors ${
+                  loading
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : 'bg-primary text-white hover:bg-primary/90'
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Create Prescription
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

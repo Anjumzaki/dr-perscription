@@ -6,6 +6,8 @@ export interface IMedication {
   frequency: string;
   duration: string;
   instructions?: string;
+  route?: string;
+  notes?: string;
 }
 
 export interface IPrescriptionPatient {
@@ -43,6 +45,7 @@ export interface IVitals {
   height?: string;
   bmi?: string;
   oxygenSaturation?: string;
+  respiratoryRate?: string;
 }
 
 export interface ITests {
@@ -90,6 +93,14 @@ const MedicationSchema: Schema = new Schema({
     trim: true
   },
   instructions: {
+    type: String,
+    trim: true
+  },
+  route: {
+    type: String,
+    trim: true
+  },
+  notes: {
     type: String,
     trim: true
   }
@@ -212,6 +223,10 @@ const VitalsSchema: Schema = new Schema({
     trim: true
   },
   oxygenSaturation: {
+    type: String,
+    trim: true
+  },
+  respiratoryRate: {
     type: String,
     trim: true
   }

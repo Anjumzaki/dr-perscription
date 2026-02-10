@@ -9,6 +9,11 @@ export interface Patient {
   email?: string;
   address?: string;
   emergencyContact?: string;
+  allergies?: string;
+  comorbidities?: string;
+  smokingHistory?: string;
+  occupationalExposure?: string;
+  insuranceId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +26,11 @@ interface CreatePatientData {
   email?: string;
   address?: string;
   emergencyContact?: string;
+  allergies?: string;
+  comorbidities?: string;
+  smokingHistory?: string;
+  occupationalExposure?: string;
+  insuranceId?: string;
 }
 
 interface UpdatePatientData extends CreatePatientData {

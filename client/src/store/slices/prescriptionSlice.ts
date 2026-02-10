@@ -7,6 +7,8 @@ export interface Medication {
   frequency: string;
   duration: string;
   instructions?: string;
+  route?: string;
+  notes?: string;
 }
 
 export interface PrescriptionPatient {

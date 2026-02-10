@@ -12,17 +12,17 @@ export const createPatient = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
     
-    const { name, age, gender, phone, email, address, emergencyContact } = req.body;
+    const { name, age, gender, phone, email, address, emergencyContact, allergies, comorbidities, smokingHistory, occupationalExposure, insuranceId } = req.body;
 
     // Check if patient with same phone number already exists for this doctor
-    const existingPatient = await Patient.findOne({ 
-      doctorId: req.user!._id, 
-      phone 
+    const existingPatient = await Patient.findOne({
+      doctorId: req.user!._id,
+      phone
     });
 
     if (existingPatient) {
-      return res.status(400).json({ 
-        message: 'A patient with this phone number already exists' 
+      return res.status(400).json({
+        message: 'A patient with this phone number already exists'
       });
     }
 
@@ -34,6 +34,11 @@ export const createPatient = async (req: AuthRequest, res: Response) => {
       email,
       address,
       emergencyContact,
+      allergies,
+      comorbidities,
+      smokingHistory,
+      occupationalExposure,
+      insuranceId,
       doctorId: req.user!._id
     });
 
@@ -50,6 +55,11 @@ export const createPatient = async (req: AuthRequest, res: Response) => {
         email: patient.email,
         address: patient.address,
         emergencyContact: patient.emergencyContact,
+        allergies: patient.allergies,
+        comorbidities: patient.comorbidities,
+        smokingHistory: patient.smokingHistory,
+        occupationalExposure: patient.occupationalExposure,
+        insuranceId: patient.insuranceId,
         createdAt: patient.createdAt,
         updatedAt: patient.updatedAt
       }
@@ -92,6 +102,11 @@ export const getPatients = async (req: AuthRequest, res: Response) => {
         email: patient.email,
         address: patient.address,
         emergencyContact: patient.emergencyContact,
+        allergies: patient.allergies,
+        comorbidities: patient.comorbidities,
+        smokingHistory: patient.smokingHistory,
+        occupationalExposure: patient.occupationalExposure,
+        insuranceId: patient.insuranceId,
         createdAt: patient.createdAt,
         updatedAt: patient.updatedAt
       })),
@@ -126,6 +141,11 @@ export const getPatientById = async (req: AuthRequest, res: Response) => {
       email: patient.email,
       address: patient.address,
       emergencyContact: patient.emergencyContact,
+      allergies: patient.allergies,
+      comorbidities: patient.comorbidities,
+      smokingHistory: patient.smokingHistory,
+      occupationalExposure: patient.occupationalExposure,
+      insuranceId: patient.insuranceId,
       createdAt: patient.createdAt,
       updatedAt: patient.updatedAt
     });
@@ -137,7 +157,7 @@ export const getPatientById = async (req: AuthRequest, res: Response) => {
 export const updatePatient = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, age, gender, phone, email, address, emergencyContact } = req.body;
+    const { name, age, gender, phone, email, address, emergencyContact, allergies, comorbidities, smokingHistory, occupationalExposure, insuranceId } = req.body;
 
     // Check if patient exists and belongs to this doctor
     const patient = await Patient.findOne({ 
@@ -173,7 +193,12 @@ export const updatePatient = async (req: AuthRequest, res: Response) => {
         phone,
         email,
         address,
-        emergencyContact
+        emergencyContact,
+        allergies,
+        comorbidities,
+        smokingHistory,
+        occupationalExposure,
+        insuranceId
       },
       { new: true, runValidators: true }
     ).select('-doctorId -__v');
@@ -189,6 +214,11 @@ export const updatePatient = async (req: AuthRequest, res: Response) => {
         email: updatedPatient!.email,
         address: updatedPatient!.address,
         emergencyContact: updatedPatient!.emergencyContact,
+        allergies: updatedPatient!.allergies,
+        comorbidities: updatedPatient!.comorbidities,
+        smokingHistory: updatedPatient!.smokingHistory,
+        occupationalExposure: updatedPatient!.occupationalExposure,
+        insuranceId: updatedPatient!.insuranceId,
         createdAt: updatedPatient!.createdAt,
         updatedAt: updatedPatient!.updatedAt
       }
