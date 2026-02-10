@@ -224,8 +224,9 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
           .section-title { font-size: 13px; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #dbeafe; padding-bottom: 4px; }
           .diagnosis-item { margin-bottom: 8px; padding: 8px 12px; background: #f9fafb; border-radius: 4px; border-left: 3px solid #2563eb; }
           .diagnosis-item p { font-size: 12px; margin-bottom: 2px; }
-          .symptoms-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-          .symptom-tag { background: #dbeafe; color: #1e40af; padding: 1px 8px; border-radius: 10px; font-size: 10px; }
+          .symptoms-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; align-items: center; }
+          .symptoms-label { font-size: 12px; font-weight: 700; color: #374151; margin-right: 6px; }
+          .symptom-tag { background: #f3f4f6; color: #374151; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 0; }
 
           /* Rx Section */
           .rx-section { padding: 16px 24px; }
@@ -234,7 +235,7 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
           .med-table th { background: #1e40af; color: white; padding: 8px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
           .med-table td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; }
           .med-table tr:nth-child(even) { background: #f9fafb; }
-          .med-num { font-weight: 700; color: #2563eb; }
+          .med-num { font-weight: 700; color: #111827; text-align: center; width: 36px; }
           .med-name { font-weight: 600; }
           .med-instructions { font-size: 11px; color: #6b7280; margin-top: 2px; }
 
@@ -307,7 +308,7 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
                 <p><strong>${d.primaryDiagnosis}</strong>${d.severity ? ` <span style="color:#9333ea;">(${d.severity})</span>` : ''}</p>
                 ${d.secondaryDiagnosis ? `<p style="font-size:11px;color:#6b7280;">${d.secondaryDiagnosis}</p>` : ''}
                 ${d.duration ? `<p style="font-size:11px;">Duration: ${d.duration}</p>` : ''}
-                ${d.symptoms && d.symptoms.length > 0 ? `<div class="symptoms-list">${d.symptoms.map(s => `<span class="symptom-tag">${s}</span>`).join('')}</div>` : ''}
+                ${d.symptoms && d.symptoms.length > 0 ? `<div class="symptoms-list"><strong class=\"symptoms-label\">Symptoms:</strong>${d.symptoms.map(s => `<span class=\"symptom-tag\">${s}</span>`).join('')}</div>` : ''}
                 ${d.notes ? `<p style="font-size:11px;color:#6b7280;margin-top:4px;">Note: ${d.notes}</p>` : ''}
               </div>
             `).join('')}
