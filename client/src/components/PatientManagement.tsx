@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchPatients, createPatient, updatePatient, deletePatient, clearError, setSearchQuery } from '../store/slices/patientSlice';
 import { Patient } from '../store/slices/patientSlice';
 
 const PatientManagement: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { patients, isLoading, error, searchQuery, total } = useAppSelector(state => state.patients);
+  const navigate = useNavigate();
+  const { patients, isLoading, error, searchQuery } = useAppSelector(state => state.patients);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+
+  // Filter state
+  const [openFilter, setOpenFilter] = useState<string | null>(null);
+  const [genderFilter, setGenderFilter] = useState<string | null>(null);
+  const [ageGroupFilter, setAgeGroupFilter] = useState<string | null>(null);
+  const [lastVisitFilter, setLastVisitFilter] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     age: 0,
@@ -39,6 +46,18 @@ const PatientManagement: React.FC = () => {
       dispatch(fetchPatients({}));
     }
   }, [searchQuery, dispatch]);
+
+  // Close filter dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-filter-dropdown]')) {
+        setOpenFilter(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const resetForm = () => {
     setFormData({
@@ -418,148 +437,322 @@ const PatientManagement: React.FC = () => {
     );
   }
 
+  // Apply client-side filters
+  const filteredPatients = patients.filter((patient) => {
+    if (genderFilter && patient.gender !== genderFilter) return false;
+
+    if (ageGroupFilter) {
+      const age = patient.age;
+      if (ageGroupFilter === '0-18' && (age < 0 || age > 18)) return false;
+      if (ageGroupFilter === '19-35' && (age < 19 || age > 35)) return false;
+      if (ageGroupFilter === '36-55' && (age < 36 || age > 55)) return false;
+      if (ageGroupFilter === '56+' && age < 56) return false;
+    }
+
+    if (lastVisitFilter) {
+      const visitDate = new Date(patient.updatedAt);
+      const now = new Date();
+      const diffDays = Math.floor((now.getTime() - visitDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (lastVisitFilter === '7days' && diffDays > 7) return false;
+      if (lastVisitFilter === '30days' && diffDays > 30) return false;
+      if (lastVisitFilter === '90days' && diffDays > 90) return false;
+    }
+
+    return true;
+  });
+
+  const hasActiveFilters = genderFilter || ageGroupFilter || lastVisitFilter;
+
+  // Helper to generate initials color from name
+  const getAvatarColor = (name: string) => {
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
+      'bg-indigo-500', 'bg-teal-500', 'bg-orange-500', 'bg-cyan-500',
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
   // Patient list view
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen font-sans">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/dashboard"
-                className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/>
+    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+      <main className="flex-grow">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          {/* Title + Search Row */}
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Patients</h2>
+            <div className="relative w-full max-w-md">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
-                Back to Dashboard
-              </Link>
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => dispatch(setSearchQuery(e.target.value))}
+                placeholder="Search by name, phone, or ID"
+                className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white pl-10 focus:border-primary focus:ring-primary sm:text-sm py-2"
+              />
             </div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Patient Management
-            </h1>
-            <div className="w-32"></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Actions Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div className="mb-4 sm:mb-0">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Patients</h2>
-            <p className="text-gray-600 dark:text-gray-400">Total: {total} patients</p>
           </div>
 
-          <button
-            onClick={handleAddPatient}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-            </svg>
-            Add New Patient
-          </button>
-        </div>
+          {/* Filter Buttons */}
+          <div className="mb-6 flex flex-wrap items-center gap-4">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by:</span>
+            <div className="flex flex-wrap gap-2">
+              {/* Gender Filter */}
+              <div className="relative" data-filter-dropdown>
+                <button
+                  type="button"
+                  onClick={() => setOpenFilter(openFilter === 'gender' ? null : 'gender')}
+                  className={`inline-flex items-center gap-x-1.5 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm ring-1 ring-inset hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                    genderFilter
+                      ? 'bg-primary/10 text-primary ring-primary/30 dark:bg-primary/20'
+                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 ring-gray-300 dark:ring-gray-600'
+                  }`}
+                >
+                  {genderFilter ? `Gender: ${genderFilter.charAt(0).toUpperCase() + genderFilter.slice(1)}` : 'Gender'}
+                  <svg className={`h-4 w-4 text-gray-400 transition-transform ${openFilter === 'gender' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+                {openFilter === 'gender' && (
+                  <div className="absolute left-0 z-20 mt-1 w-40 rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5 dark:ring-gray-700">
+                    <div className="py-1">
+                      <button
+                        onClick={() => { setGenderFilter(null); setOpenFilter(null); }}
+                        className={`block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${!genderFilter ? 'font-semibold text-primary' : 'text-gray-700 dark:text-gray-300'}`}
+                      >
+                        All
+                      </button>
+                      {['male', 'female', 'other'].map((g) => (
+                        <button
+                          key={g}
+                          onClick={() => { setGenderFilter(g); setOpenFilter(null); }}
+                          className={`block w-full px-4 py-2 text-left text-sm capitalize hover:bg-gray-100 dark:hover:bg-gray-700 ${genderFilter === g ? 'font-semibold text-primary' : 'text-gray-700 dark:text-gray-300'}`}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => dispatch(setSearchQuery(e.target.value))}
-              placeholder="Search patients by name, phone, or email..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
-            <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg>
-          </div>
-        </div>
+              {/* Age Group Filter */}
+              <div className="relative" data-filter-dropdown>
+                <button
+                  type="button"
+                  onClick={() => setOpenFilter(openFilter === 'age' ? null : 'age')}
+                  className={`inline-flex items-center gap-x-1.5 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm ring-1 ring-inset hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                    ageGroupFilter
+                      ? 'bg-primary/10 text-primary ring-primary/30 dark:bg-primary/20'
+                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 ring-gray-300 dark:ring-gray-600'
+                  }`}
+                >
+                  {ageGroupFilter ? `Age: ${ageGroupFilter}` : 'Age Group'}
+                  <svg className={`h-4 w-4 text-gray-400 transition-transform ${openFilter === 'age' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+                {openFilter === 'age' && (
+                  <div className="absolute left-0 z-20 mt-1 w-40 rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5 dark:ring-gray-700">
+                    <div className="py-1">
+                      <button
+                        onClick={() => { setAgeGroupFilter(null); setOpenFilter(null); }}
+                        className={`block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${!ageGroupFilter ? 'font-semibold text-primary' : 'text-gray-700 dark:text-gray-300'}`}
+                      >
+                        All
+                      </button>
+                      {[
+                        { value: '0-18', label: '0 - 18 years' },
+                        { value: '19-35', label: '19 - 35 years' },
+                        { value: '36-55', label: '36 - 55 years' },
+                        { value: '56+', label: '56+ years' },
+                      ].map((ag) => (
+                        <button
+                          key={ag.value}
+                          onClick={() => { setAgeGroupFilter(ag.value); setOpenFilter(null); }}
+                          className={`block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${ageGroupFilter === ag.value ? 'font-semibold text-primary' : 'text-gray-700 dark:text-gray-300'}`}
+                        >
+                          {ag.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
-        {error && (
-          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm">{error}</p>
-          </div>
-        )}
+              {/* Last Visit Filter */}
+              <div className="relative" data-filter-dropdown>
+                <button
+                  type="button"
+                  onClick={() => setOpenFilter(openFilter === 'visit' ? null : 'visit')}
+                  className={`inline-flex items-center gap-x-1.5 rounded-md px-3 py-1.5 text-sm font-semibold shadow-sm ring-1 ring-inset hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                    lastVisitFilter
+                      ? 'bg-primary/10 text-primary ring-primary/30 dark:bg-primary/20'
+                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 ring-gray-300 dark:ring-gray-600'
+                  }`}
+                >
+                  {lastVisitFilter
+                    ? `Visit: Last ${lastVisitFilter === '7days' ? '7 days' : lastVisitFilter === '30days' ? '30 days' : '90 days'}`
+                    : 'Last Visit'}
+                  <svg className={`h-4 w-4 text-gray-400 transition-transform ${openFilter === 'visit' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+                {openFilter === 'visit' && (
+                  <div className="absolute left-0 z-20 mt-1 w-44 rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5 dark:ring-gray-700">
+                    <div className="py-1">
+                      <button
+                        onClick={() => { setLastVisitFilter(null); setOpenFilter(null); }}
+                        className={`block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${!lastVisitFilter ? 'font-semibold text-primary' : 'text-gray-700 dark:text-gray-300'}`}
+                      >
+                        All
+                      </button>
+                      {[
+                        { value: '7days', label: 'Last 7 days' },
+                        { value: '30days', label: 'Last 30 days' },
+                        { value: '90days', label: 'Last 90 days' },
+                      ].map((v) => (
+                        <button
+                          key={v.value}
+                          onClick={() => { setLastVisitFilter(v.value); setOpenFilter(null); }}
+                          className={`block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${lastVisitFilter === v.value ? 'font-semibold text-primary' : 'text-gray-700 dark:text-gray-300'}`}
+                        >
+                          {v.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
-        {/* Patients List */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {isLoading ? (
-            <div className="p-8 text-center text-gray-500">Loading patients...</div>
-          ) : patients.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              {searchQuery ? 'No patients found matching your search' : 'No patients found. Add your first patient to get started.'}
+              {/* Clear Filters */}
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={() => { setGenderFilter(null); setAgeGroupFilter(null); setLastVisitFilter(null); }}
+                  className="inline-flex items-center gap-x-1 rounded-md px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-500"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                  Clear filters
+                </button>
+              )}
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Patient</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Medical</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Added</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {patients.map((patient) => (
-                    <tr key={patient.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">{patient.name}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{patient.age} years | {patient.gender}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm text-gray-900 dark:text-white">{patient.phone}</div>
-                          {patient.email && (
-                            <div className="text-sm text-gray-500 dark:text-gray-400">{patient.email}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 dark:text-white max-w-xs">
-                          {patient.allergies && (
-                            <div className="text-xs text-red-600 dark:text-red-400 truncate">Allergies: {patient.allergies}</div>
-                          )}
-                          {patient.comorbidities && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">Comorbidities: {patient.comorbidities}</div>
-                          )}
-                          {!patient.allergies && !patient.comorbidities && (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(patient.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleEditPatient(patient)}
-                          className="text-primary hover:text-primary/80 mr-3"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeletePatient(patient.id)}
-                          className="text-red-600 hover:text-red-500"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
             </div>
           )}
+
+          {/* Patients Table */}
+          <div className="overflow-hidden bg-white dark:bg-gray-800 shadow sm:rounded-md">
+            {isLoading ? (
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading patients...</div>
+            ) : filteredPatients.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                {searchQuery || hasActiveFilters ? 'No patients found matching your criteria' : 'No patients found. Add your first patient to get started.'}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-900">
+                    <tr>
+                      <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-200 sm:pl-6">
+                        Name
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                        Age
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                        Gender
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                        Phone
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">
+                        Last Visit
+                      </th>
+                      <th scope="col" className="px-3 py-3.5 text-right text-sm font-semibold text-gray-900 dark:text-gray-200 pr-6">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                    {filteredPatients.map((patient) => (
+                      <tr key={patient.id} onClick={() => navigate(`/patients/${patient.id}`)} className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 flex-shrink-0">
+                              <div className={`h-10 w-10 rounded-full flex items-center justify-center text-white font-semibold text-sm ${getAvatarColor(patient.name)}`}>
+                                {getInitials(patient.name)}
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="font-medium text-gray-900 dark:text-white">{patient.name}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          {patient.age}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400 capitalize">
+                          {patient.gender}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          {patient.phone}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                          {new Date(patient.updatedAt).toISOString().split('T')[0]}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-right text-sm font-medium pr-6">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleEditPatient(patient); }}
+                            className="text-primary hover:text-primary/80 mr-3"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeletePatient(patient.id); }}
+                            className="text-red-600 hover:text-red-500"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
+
+      {/* Floating Add New Patient Button */}
+      <button
+        onClick={handleAddPatient}
+        type="button"
+        className="fixed bottom-8 right-8 inline-flex items-center gap-x-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-colors"
+      >
+        <svg className="h-5 w-5 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Add New Patient
+      </button>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { createPrescription, clearError } from '../../store/slices/prescriptionSlice';
+import type { User } from '../../store/slices/authSlice';
 
 // Step components
 import PatientSelection from './prescription-steps/PatientSelection';
@@ -79,6 +80,7 @@ const MultistepPrescription: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { isLoading, error: reduxError } = useAppSelector(state => state.prescriptions);
+  const { user: doctorUser } = useAppSelector(state => state.auth);
 
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -158,11 +160,53 @@ const MultistepPrescription: React.FC = () => {
     }
   };
 
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  const validatePrescription = (): string[] => {
+    const errors: string[] = [];
+    const { patient, diagnosis, medications } = prescriptionData;
+
+    // Step 1: Patient validation
+    if (!patient.name.trim()) errors.push('Patient name is required (Step 1)');
+    if (!patient.age || patient.age <= 0) errors.push('Patient age is required (Step 1)');
+    if (!patient.phone.trim()) errors.push('Patient phone is required (Step 1)');
+
+    // Step 2: Diagnosis validation
+    if (!diagnosis || diagnosis.length === 0) {
+      errors.push('At least one diagnosis is required (Step 2)');
+    } else {
+      diagnosis.forEach((d: any, i: number) => {
+        if (!d.primaryDiagnosis?.trim()) errors.push(`Diagnosis #${i + 1} is missing a primary diagnosis (Step 2)`);
+        if (!d.severity) errors.push(`Diagnosis #${i + 1} is missing severity (Step 2)`);
+      });
+    }
+
+    // Step 5: Medications validation
+    if (!medications || medications.length === 0) {
+      errors.push('At least one medication is required (Step 5)');
+    } else {
+      medications.forEach((m: any, i: number) => {
+        if (!m.name?.trim()) errors.push(`Medication #${i + 1} is missing a name (Step 5)`);
+        if (!m.dosage?.trim()) errors.push(`Medication #${i + 1} is missing dosage (Step 5)`);
+        if (!m.frequency?.trim()) errors.push(`Medication #${i + 1} is missing frequency (Step 5)`);
+        if (!m.duration?.trim()) errors.push(`Medication #${i + 1} is missing duration (Step 5)`);
+      });
+    }
+
+    return errors;
+  };
+
   const handleSubmit = async () => {
     dispatch(clearError());
 
+    const errors = validatePrescription();
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    setValidationErrors([]);
+
     try {
-      // Prepare the data for the API call
       const prescriptionPayload = {
         patient: prescriptionData.patient,
         diagnosis: prescriptionData.diagnosis,
@@ -173,15 +217,12 @@ const MultistepPrescription: React.FC = () => {
         notes: prescriptionData.lifestyle.followUpInstructions || ''
       };
 
-      console.log('Submitting prescription with payload:', prescriptionPayload);
-
       await dispatch(createPrescription(prescriptionPayload)).unwrap();
 
       alert('Prescription created successfully!');
       navigate('/prescriptions');
     } catch (error) {
       console.error('Failed to create prescription:', error);
-      // Error is handled by Redux state
     }
   };
 
@@ -233,6 +274,9 @@ const MultistepPrescription: React.FC = () => {
             onPrev={prevStep}
             loading={isLoading}
             error={reduxError || ''}
+            validationErrors={validationErrors}
+            prescriptionData={prescriptionData}
+            doctor={doctorUser}
           />
         );
       default:

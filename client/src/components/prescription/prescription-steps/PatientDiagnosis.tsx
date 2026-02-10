@@ -51,16 +51,11 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
       return;
     }
 
-    if (!duration.trim()) {
-      setError('Please enter the duration of the condition.');
-      return;
-    }
-
     const newDiagnosis: DiagnosisEntry = {
       primaryDiagnosis: icdCode ? icdCode : diagnosisText.trim(),
       secondaryDiagnosis: icdCode ? diagnosisText.trim() || undefined : undefined,
       symptoms: symptoms.trim() ? symptoms.split(',').map(s => s.trim()).filter(Boolean) : [],
-      duration: duration.trim(),
+      duration: duration.trim() || '',
       severity,
       notes: notes.trim() || undefined,
     };
@@ -151,7 +146,7 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="duration">
-                    Duration *
+                    Duration <span className="text-gray-400 font-normal">(Optional)</span>
                   </label>
                   <input
                     id="duration"
