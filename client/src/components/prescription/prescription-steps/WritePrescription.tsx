@@ -24,12 +24,12 @@ const doseOptions = ['1 tablet', '2 tablets', '1 capsule', '2 capsules', '1 puff
 const frequencyOptions = ['Once a day', 'Twice a day', 'Three times a day', 'Four times a day', 'Every 4 hours', 'Every 6 hours', 'Every 8 hours', 'Every 12 hours', 'Before meals', 'After meals', 'At bedtime', 'As needed'];
 const durationOptions = ['3 days', '5 days', '7 days', '10 days', '14 days', '21 days', '30 days', '1 month', '2 months', '3 months', 'Until finished', 'As directed'];
 const routeOptions = [
-  { value: 'Oral', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z' },
-  { value: 'Inhaler', icon: '' },
-  { value: 'Nebulizer', icon: '' },
-  { value: 'Injection', icon: '' },
-  { value: 'Topical', icon: '' },
-  { value: 'IV', icon: '' },
+  { value: 'Oral', icon: '💊' },
+  { value: 'Inhaler', icon: '🌬️' },
+  { value: 'Nebulizer', icon: '☁️' },
+  { value: 'Injection', icon: '💉' },
+  { value: 'Topical', icon: '🧴' },
+  { value: 'IV', icon: '🩺' },
 ];
 
 const commonMedicines = [
@@ -240,11 +240,10 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
                     {routeOptions.map((r) => (
                       <label
                         key={r.value}
-                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-md border text-sm transition-colors ${
-                          route === r.value
+                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-md border text-sm transition-colors ${route === r.value
                             ? 'bg-primary text-white border-primary'
                             : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-primary/50'
-                        }`}
+                          }`}
                       >
                         <input
                           type="radio"
@@ -254,9 +253,7 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
                           onChange={() => setRoute(r.value)}
                           className="hidden"
                         />
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                        </svg>
+                        <span className="w-4 h-4 flex items-center justify-center text-sm">{r.icon}</span>
                         {r.value}
                       </label>
                     ))}
@@ -347,9 +344,7 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
                   {medications.map((med, index) => (
                     <div key={index} className="flex items-start gap-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700">
                       <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                        </svg>
+                        <span className="text-xl">{routeOptions.find(ro => ro.value === med.route)?.icon ?? '💊'}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 dark:text-white">{med.name}</p>
@@ -392,11 +387,10 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className={`flex-1 px-6 py-3 rounded-md font-semibold flex items-center justify-center gap-2 transition-colors ${
-                  loading
+                className={`flex-1 px-6 py-3 rounded-md font-semibold flex items-center justify-center gap-2 transition-colors ${loading
                     ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                     : 'bg-primary text-white hover:bg-primary/90'
-                }`}
+                  }`}
               >
                 {loading ? (
                   <>
