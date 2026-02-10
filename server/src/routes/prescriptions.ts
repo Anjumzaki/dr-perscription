@@ -4,7 +4,11 @@ import {
   getPrescriptions,
   getPrescriptionById,
   updatePrescription,
-  deletePrescription
+  deletePrescription,
+  getSavedDiagnoses,
+  getSavedSymptoms,
+  getSavedTests,
+  getSavedMedicines
 } from '../controllers/prescriptionController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -14,6 +18,10 @@ router.use(authenticateToken);
 
 router.post('/', createPrescription);
 router.get('/', getPrescriptions);
+router.get('/saved-diagnoses', getSavedDiagnoses);
+router.get('/saved-symptoms', getSavedSymptoms);
+router.get('/saved-tests', getSavedTests);
+router.get('/saved-medicines', getSavedMedicines);
 router.get('/:id', getPrescriptionById);
 router.put('/:id', updatePrescription);
 router.delete('/:id', deletePrescription);

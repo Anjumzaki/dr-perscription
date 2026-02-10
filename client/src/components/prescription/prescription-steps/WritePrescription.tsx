@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { apiService } from '../../../services/api';
 
 interface Medication {
   name: string;
@@ -73,6 +74,12 @@ interface WritePrescriptionProps {
   doctor?: Doctor | null;
 }
 
+interface SavedMedicine {
+  medicine: string;
+  count: number;
+  lastUsed: string;
+}
+
 const strengthOptions = ['5mg', '10mg', '20mg', '25mg', '50mg', '100mg', '200mg', '250mg', '500mg', '750mg', '1000mg', '100mcg', '200mcg'];
 const doseOptions = ['1 tablet', '2 tablets', '1 capsule', '2 capsules', '1 puff', '2 puffs', '5ml', '10ml', '5 units', '10 units'];
 const frequencyOptions = ['Once a day', 'Twice a day', 'Three times a day', 'Four times a day', 'Every 4 hours', 'Every 6 hours', 'Every 8 hours', 'Every 12 hours', 'Before meals', 'After meals', 'At bedtime', 'As needed'];
@@ -117,14 +124,81 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
   const [pharmacistNotes, setPharmacistNotes] = useState('');
   const [formError, setFormError] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
+  
+  const [savedMedicines, setSavedMedicines] = useState<SavedMedicine[]>([]);
+  const [allAvailableMedicines, setAllAvailableMedicines] = useState<string[]>(commonMedicines);
+  const [filteredMedicines, setFilteredMedicines] = useState<string[]>([]);
+  const [isLoadingMedicines, setIsLoadingMedicines] = useState(false);
+  const medicinesDropdownRef = useRef<HTMLDivElement>(null);
+  const medicinesInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredMedicines = searchMedicine.trim()
-    ? commonMedicines.filter(m => m.toLowerCase().includes(searchMedicine.toLowerCase()))
-    : [];
+  // Fetch saved medicines on component mount
+  useEffect(() => {
+    const fetchSavedMedicines = async () => {
+      setIsLoadingMedicines(true);
+      try {
+        const response = await apiService.prescriptions.getSavedMedicines();
+        const medicines = response.data.medicines || [];
+        setSavedMedicines(medicines);
+        
+        // Merge saved medicines with common medicines
+        const medicineNames = medicines.map((m: SavedMedicine) => m.medicine);
+        const merged = Array.from(new Set([...commonMedicines, ...medicineNames]));
+        setAllAvailableMedicines(merged);
+      } catch (error) {
+        console.error('Error fetching saved medicines:', error);
+      } finally {
+        setIsLoadingMedicines(false);
+      }
+    };
+
+    fetchSavedMedicines();
+  }, []);
+
+  // Filter medicines based on search input
+  useEffect(() => {
+    if (searchMedicine.trim()) {
+      const filtered = allAvailableMedicines.filter(m =>
+        m.toLowerCase().includes(searchMedicine.toLowerCase())
+      );
+      setFilteredMedicines(filtered);
+    } else {
+      setFilteredMedicines([]);
+    }
+  }, [searchMedicine, allAvailableMedicines]);
+
+  // Handle click outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        medicinesDropdownRef.current &&
+        !medicinesDropdownRef.current.contains(event.target as Node) &&
+        medicinesInputRef.current &&
+        !medicinesInputRef.current.contains(event.target as Node)
+      ) {
+        setSearchFocused(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const selectMedicine = (name: string) => {
     setSearchMedicine(name);
     setSearchFocused(false);
+  };
+
+  const handleAddCustomMedicine = () => {
+    if (searchMedicine.trim() && !allAvailableMedicines.includes(searchMedicine.trim())) {
+      const customMedicine = searchMedicine.trim();
+      
+      // Add to available medicines if not already there
+      setAllAvailableMedicines([...allAvailableMedicines, customMedicine]);
+      setSearchFocused(false);
+    }
   };
 
   const addMedication = () => {
@@ -456,35 +530,83 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
               <div className="space-y-6">
                 {/* Search Medicine */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-1">
-                    Search Medicine
+                  <label className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2 flex items-center justify-between">
+                    <span>Search Medicine</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLoadingMedicines(true);
+                        apiService.prescriptions.getSavedMedicines().then(response => {
+                          const medicines = response.data.medicines || [];
+                          setSavedMedicines(medicines);
+                          const medicineNames = medicines.map((m: SavedMedicine) => m.medicine);
+                          const merged = Array.from(new Set([...commonMedicines, ...medicineNames]));
+                          setAllAvailableMedicines(merged);
+                          setIsLoadingMedicines(false);
+                        });
+                      }}
+                      disabled={isLoadingMedicines}
+                      className="text-xs text-primary hover:text-primary/80 disabled:text-gray-400 transition-colors"
+                      title="Refresh saved medicines"
+                    >
+                      {isLoadingMedicines ? '⟳ Loading...' : '⟳ Refresh'}
+                    </button>
                   </label>
                   <div className="relative">
                     <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <input
+                      ref={medicinesInputRef}
                       type="text"
                       value={searchMedicine}
-                      onChange={(e) => setSearchMedicine(e.target.value)}
+                      onChange={(e) => {
+                        setSearchMedicine(e.target.value);
+                        setSearchFocused(true);
+                      }}
                       onFocus={() => setSearchFocused(true)}
-                      onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
                       className="w-full pl-10 pr-4 py-2.5 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary focus:border-primary placeholder:text-gray-400"
                       placeholder="Search by brand or generic name"
+                      autoComplete="off"
                     />
                     {/* Search Dropdown */}
-                    {searchFocused && filteredMedicines.length > 0 && (
-                      <div className="absolute z-20 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                        {filteredMedicines.map((med) => (
+                    {searchFocused && (
+                      <div
+                        ref={medicinesDropdownRef}
+                        className="absolute z-20 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto"
+                      >
+                        {filteredMedicines.length > 0 ? (
+                          <>
+                            {filteredMedicines.map((med) => {
+                              const savedMed = savedMedicines.find(m => m.medicine === med);
+                              return (
+                                <button
+                                  key={med}
+                                  type="button"
+                                  onMouseDown={() => selectMedicine(med)}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center"
+                                >
+                                  <span>{med}</span>
+                                  {savedMed && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      Used {savedMed.count}x
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </>
+                        ) : null}
+                        
+                        {searchMedicine.trim() && !allAvailableMedicines.includes(searchMedicine.trim()) && (
                           <button
-                            key={med}
                             type="button"
-                            onMouseDown={() => selectMedicine(med)}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            onMouseDown={handleAddCustomMedicine}
+                            className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-t border-gray-200 dark:border-gray-600"
                           >
-                            {med}
+                            + Add "<strong>{searchMedicine.trim()}</strong>" as new medicine
                           </button>
-                        ))}
+                        )}
                       </div>
                     )}
                   </div>

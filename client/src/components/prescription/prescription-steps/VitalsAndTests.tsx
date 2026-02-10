@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { apiService } from '../../../services/api';
 
 interface Vitals {
   bloodPressure?: string;
@@ -26,6 +27,12 @@ interface Tests {
   testNotes?: string;
 }
 
+interface SavedTest {
+  test: string;
+  count: number;
+  lastUsed: string;
+}
+
 interface VitalsAndTestsProps {
   vitalsData: Vitals;
   testsData: Tests;
@@ -50,6 +57,10 @@ const recommendedTests = [
   'Blood Glucose',
 ];
 
+interface SavedTests {
+  [key: string]: SavedTest;
+}
+
 const VitalsAndTests: React.FC<VitalsAndTestsProps> = ({
   vitalsData,
   testsData,
@@ -64,6 +75,15 @@ const VitalsAndTests: React.FC<VitalsAndTestsProps> = ({
     units: '',
     notes: '',
   });
+
+  const [savedTests, setSavedTests] = useState<SavedTest[]>([]);
+  const [allAvailableTests, setAllAvailableTests] = useState<string[]>(recommendedTests);
+  const [showTestsDropdown, setShowTestsDropdown] = useState(false);
+  const [testSearchInput, setTestSearchInput] = useState('');
+  const [filteredTestsForDropdown, setFilteredTestsForDropdown] = useState<string[]>([]);
+  const [isLoadingTests, setIsLoadingTests] = useState(false);
+  const testsDropdownRef = useRef<HTMLDivElement>(null);
+  const testsInputRef = useRef<HTMLInputElement>(null);
 
   // Reconstruct addedResults from saved labResults so data persists across step navigation
   const parseLabResult = (resultStr: string): TestResult => {
@@ -100,6 +120,63 @@ const VitalsAndTests: React.FC<VitalsAndTestsProps> = ({
     }
   }, [vitalsData.weight, vitalsData.height]);
 
+  // Fetch saved tests when component mounts
+  useEffect(() => {
+    const fetchSavedTests = async () => {
+      setIsLoadingTests(true);
+      try {
+        const response = await apiService.prescriptions.getSavedTests();
+        const tests = response.data.tests || [];
+        setSavedTests(tests);
+        
+        // Merge saved tests with recommended tests
+        const testNames = tests.map((t: SavedTest) => t.test);
+        const merged = Array.from(new Set([...recommendedTests, ...testNames]));
+        setAllAvailableTests(merged);
+      } catch (error) {
+        console.error('Error fetching saved tests:', error);
+      } finally {
+        setIsLoadingTests(false);
+      }
+    };
+
+    fetchSavedTests();
+  }, []);
+
+  // Filter tests based on search input
+  useEffect(() => {
+    if (testSearchInput.trim()) {
+      const filtered = allAvailableTests.filter(t =>
+        t.toLowerCase().includes(testSearchInput.toLowerCase()) &&
+        !testsData.orderedTests.includes(t)
+      );
+      setFilteredTestsForDropdown(filtered);
+    } else {
+      setFilteredTestsForDropdown(
+        allAvailableTests.filter(t => !testsData.orderedTests.includes(t))
+      );
+    }
+  }, [testSearchInput, allAvailableTests, testsData.orderedTests]);
+
+  // Handle click outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        testsDropdownRef.current &&
+        !testsDropdownRef.current.contains(event.target as Node) &&
+        testsInputRef.current &&
+        !testsInputRef.current.contains(event.target as Node)
+      ) {
+        setShowTestsDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const handleVitalChange = (field: keyof Vitals, value: string) => {
     onUpdateVitals({ [field]: value });
   };
@@ -110,6 +187,27 @@ const VitalsAndTests: React.FC<VitalsAndTestsProps> = ({
       onUpdateTests({ orderedTests: current.filter((t) => t !== test) });
     } else {
       onUpdateTests({ orderedTests: [...current, test] });
+    }
+  };
+
+  const handleTestSelect = (test: string) => {
+    toggleTest(test);
+    setTestSearchInput('');
+    setShowTestsDropdown(false);
+  };
+
+  const handleAddCustomTest = () => {
+    if (testSearchInput.trim() && !testsData.orderedTests.includes(testSearchInput.trim())) {
+      const customTest = testSearchInput.trim();
+      toggleTest(customTest);
+      
+      // Add to available tests if not already there
+      if (!allAvailableTests.includes(customTest)) {
+        setAllAvailableTests([...allAvailableTests, customTest]);
+      }
+      
+      setTestSearchInput('');
+      setShowTestsDropdown(false);
     }
   };
 
@@ -248,19 +346,115 @@ const VitalsAndTests: React.FC<VitalsAndTestsProps> = ({
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 leading-tight tracking-tight mb-6">
               Recommended Tests
             </h2>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-4">
-              {recommendedTests.map((test) => (
-                <label key={test} className="flex items-center gap-x-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={testsData.orderedTests.includes(test)}
-                    onChange={() => toggleTest(test)}
-                    className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary"
-                  />
-                  <p className="text-gray-800 dark:text-gray-200 text-sm font-normal leading-normal">{test}</p>
-                </label>
-              ))}
+            
+            <div className="mb-6 relative">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
+                <span>Select Tests</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLoadingTests(true);
+                    apiService.prescriptions.getSavedTests().then(response => {
+                      const tests = response.data.tests || [];
+                      setSavedTests(tests);
+                      const testNames = tests.map((t: SavedTest) => t.test);
+                      const merged = Array.from(new Set([...recommendedTests, ...testNames]));
+                      setAllAvailableTests(merged);
+                      setIsLoadingTests(false);
+                    });
+                  }}
+                  disabled={isLoadingTests}
+                  className="text-xs text-primary hover:text-primary/80 disabled:text-gray-400 transition-colors"
+                  title="Refresh saved tests"
+                >
+                  {isLoadingTests ? '⟳ Loading...' : '⟳ Refresh'}
+                </button>
+              </label>
+              
+              <input
+                ref={testsInputRef}
+                type="text"
+                value={testSearchInput}
+                onChange={(e) => {
+                  setTestSearchInput(e.target.value);
+                  setShowTestsDropdown(true);
+                }}
+                onFocus={() => setShowTestsDropdown(true)}
+                placeholder="Search tests or add custom test..."
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                autoComplete="off"
+              />
+              
+              {showTestsDropdown && (
+                <div
+                  ref={testsDropdownRef}
+                  className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto"
+                >
+                  {filteredTestsForDropdown.length > 0 ? (
+                    <>
+                      {filteredTestsForDropdown.map((test, index) => {
+                        const savedTest = savedTests.find(t => t.test === test);
+                        return (
+                          <div
+                            key={index}
+                            onClick={() => handleTestSelect(test)}
+                            className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer flex justify-between items-center"
+                          >
+                            <span className="text-gray-900 dark:text-white">{test}</span>
+                            {savedTest && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                Used {savedTest.count}x
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : null}
+                  
+                  {testSearchInput.trim() && !allAvailableTests.includes(testSearchInput.trim()) && (
+                    <div
+                      onClick={handleAddCustomTest}
+                      className="px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer border-t border-gray-200 dark:border-gray-600"
+                    >
+                      <p className="text-sm text-blue-600 dark:text-blue-400">
+                        + Add "<strong>{testSearchInput.trim()}</strong>" as new test
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* Selected Tests Display */}
+            {testsData.orderedTests.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Selected Tests ({testsData.orderedTests.length})</h3>
+                <div className="flex flex-wrap gap-2">
+                  {testsData.orderedTests.map((test) => {
+                    const savedTest = savedTests.find(t => t.test === test);
+                    return (
+                      <div
+                        key={test}
+                        className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary dark:text-blue-300 rounded-full text-sm"
+                      >
+                        <span>{test}</span>
+                        {savedTest && (
+                          <span className="text-xs opacity-75">({savedTest.count}x)</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => toggleTest(test)}
+                          className="ml-1 hover:opacity-70 transition-opacity"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Test Results Section */}

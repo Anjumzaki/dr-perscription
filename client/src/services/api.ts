@@ -81,6 +81,14 @@ export const apiService = {
     
     getById: (id: string) => apiClient.get(`/prescriptions/${id}`),
     
+    getSavedDiagnoses: () => apiClient.get('/prescriptions/saved-diagnoses'),
+    
+    getSavedSymptoms: () => apiClient.get('/prescriptions/saved-symptoms'),
+    
+    getSavedTests: () => apiClient.get('/prescriptions/saved-tests'),
+    
+    getSavedMedicines: () => apiClient.get('/prescriptions/saved-medicines'),
+    
     create: (prescriptionData: {
       patient: {
         id?: string;
