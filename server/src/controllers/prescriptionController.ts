@@ -192,3 +192,178 @@ export const deletePrescription = async (req: AuthenticatedRequest, res: Respons
     res.status(500).json({ message: 'Server error', error });
   }
 };
+
+export const getSavedDiagnoses = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Get all unique diagnoses (both primary and secondary) from this doctor's prescriptions
+    const diagnoses = await Prescription.aggregate([
+      { $match: { doctorId: req.user._id } },
+      { $unwind: '$diagnosis' },
+      { 
+        $group: { 
+          _id: null,
+          diagnoses: {
+            $push: {
+              primary: '$diagnosis.primaryDiagnosis',
+              secondary: '$diagnosis.secondaryDiagnosis'
+            }
+          },
+          lastUsed: { $max: '$dateIssued' }
+        } 
+      },
+      {
+        $project: {
+          _id: 0,
+          diagnoses: 1,
+          lastUsed: 1
+        }
+      }
+    ]);
+
+    // Extract unique diagnoses with counts
+    const uniqueDiagnoses: { [key: string]: { count: number; lastUsed: Date } } = {};
+
+    if (diagnoses.length > 0) {
+      diagnoses[0].diagnoses.forEach((item: any) => {
+        // Add primary diagnosis
+        if (item.primary) {
+          if (!uniqueDiagnoses[item.primary]) {
+            uniqueDiagnoses[item.primary] = { count: 0, lastUsed: diagnoses[0].lastUsed };
+          }
+          uniqueDiagnoses[item.primary].count += 1;
+        }
+        // Add secondary diagnosis if exists
+        if (item.secondary) {
+          if (!uniqueDiagnoses[item.secondary]) {
+            uniqueDiagnoses[item.secondary] = { count: 0, lastUsed: diagnoses[0].lastUsed };
+          }
+          uniqueDiagnoses[item.secondary].count += 1;
+        }
+      });
+    }
+
+    // Convert to sorted array
+    const result = Object.entries(uniqueDiagnoses)
+      .map(([diagnosis, data]) => ({
+        diagnosis,
+        count: data.count,
+        lastUsed: data.lastUsed
+      }))
+      .sort((a, b) => b.count - a.count || new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime());
+
+    res.json({ diagnoses: result });
+  } catch (error) {
+    console.error('Error fetching saved diagnoses:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+export const getSavedSymptoms = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Get all unique symptoms from this doctor's prescriptions
+    const symptoms = await Prescription.aggregate([
+      { $match: { doctorId: req.user._id } },
+      { $unwind: '$diagnosis' },
+      { $unwind: '$diagnosis.symptoms' },
+      { 
+        $group: { 
+          _id: '$diagnosis.symptoms',
+          count: { $sum: 1 },
+          lastUsed: { $max: '$dateIssued' }
+        } 
+      },
+      { $sort: { count: -1, lastUsed: -1 } },
+      { 
+        $project: { 
+          _id: 0, 
+          symptom: '$_id', 
+          count: 1,
+          lastUsed: 1
+        } 
+      }
+    ]);
+
+    res.json({ symptoms });
+  } catch (error) {
+    console.error('Error fetching saved symptoms:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+export const getSavedTests = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Get all unique tests from this doctor's prescriptions
+    const tests = await Prescription.aggregate([
+      { $match: { doctorId: req.user._id } },
+      { $unwind: '$tests.orderedTests' },
+      { 
+        $group: { 
+          _id: '$tests.orderedTests',
+          count: { $sum: 1 },
+          lastUsed: { $max: '$dateIssued' }
+        } 
+      },
+      { $sort: { count: -1, lastUsed: -1 } },
+      { 
+        $project: { 
+          _id: 0, 
+          test: '$_id', 
+          count: 1,
+          lastUsed: 1
+        } 
+      }
+    ]);
+
+    res.json({ tests });
+  } catch (error) {
+    console.error('Error fetching saved tests:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+export const getSavedMedicines = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // Get all unique medicines from this doctor's prescriptions
+    const medicines = await Prescription.aggregate([
+      { $match: { doctorId: req.user._id } },
+      { $unwind: '$medications' },
+      { 
+        $group: { 
+          _id: '$medications.name',
+          count: { $sum: 1 },
+          lastUsed: { $max: '$dateIssued' }
+        } 
+      },
+      { $sort: { count: -1, lastUsed: -1 } },
+      { 
+        $project: { 
+          _id: 0, 
+          medicine: '$_id', 
+          count: 1,
+          lastUsed: 1
+        } 
+      }
+    ]);
+
+    res.json({ medicines });
+  } catch (error) {
+    console.error('Error fetching saved medicines:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};

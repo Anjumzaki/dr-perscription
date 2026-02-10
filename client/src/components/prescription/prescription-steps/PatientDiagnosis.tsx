@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { apiService } from '../../../services/api';
 
 interface DiagnosisEntry {
   primaryDiagnosis: string;
@@ -14,6 +15,18 @@ interface PatientDiagnosisProps {
   onUpdate: (data: DiagnosisEntry[]) => void;
   onNext: () => void;
   onPrev: () => void;
+}
+
+interface SavedDiagnosis {
+  diagnosis: string;
+  count: number;
+  lastUsed: string;
+}
+
+interface SavedSymptom {
+  symptom: string;
+  count: number;
+  lastUsed: string;
 }
 
 const icdCodes = [
@@ -42,6 +55,120 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
   const [symptoms, setSymptoms] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
+  
+  const [savedDiagnoses, setSavedDiagnoses] = useState<SavedDiagnosis[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [filteredDiagnoses, setFilteredDiagnoses] = useState<SavedDiagnosis[]>([]);
+  const [isLoadingDiagnoses, setIsLoadingDiagnoses] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const [savedSymptoms, setSavedSymptoms] = useState<SavedSymptom[]>([]);
+  const [showSymptomsDropdown, setShowSymptomsDropdown] = useState(false);
+  const [filteredSymptoms, setFilteredSymptoms] = useState<SavedSymptom[]>([]);
+  const [isLoadingSymptoms, setIsLoadingSymptoms] = useState(false);
+  const symptomsDropdownRef = useRef<HTMLDivElement>(null);
+  const symptomsInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchSavedDiagnoses = async () => {
+    setIsLoadingDiagnoses(true);
+    try {
+      const response = await apiService.prescriptions.getSavedDiagnoses();
+      setSavedDiagnoses(response.data.diagnoses || []);
+    } catch (error) {
+      console.error('Error fetching saved diagnoses:', error);
+    } finally {
+      setIsLoadingDiagnoses(false);
+    }
+  };
+
+  const fetchSavedSymptoms = async () => {
+    setIsLoadingSymptoms(true);
+    try {
+      const response = await apiService.prescriptions.getSavedSymptoms();
+      setSavedSymptoms(response.data.symptoms || []);
+    } catch (error) {
+      console.error('Error fetching saved symptoms:', error);
+    } finally {
+      setIsLoadingSymptoms(false);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch saved diagnoses and symptoms when component mounts
+    fetchSavedDiagnoses();
+    fetchSavedSymptoms();
+  }, []);
+
+  useEffect(() => {
+    // Filter diagnoses based on input
+    if (diagnosisText.trim()) {
+      const filtered = savedDiagnoses.filter(d =>
+        d.diagnosis.toLowerCase().includes(diagnosisText.toLowerCase())
+      );
+      setFilteredDiagnoses(filtered);
+    } else {
+      setFilteredDiagnoses(savedDiagnoses);
+    }
+  }, [diagnosisText, savedDiagnoses]);
+
+  useEffect(() => {
+    // Filter symptoms based on input
+    if (symptoms.trim()) {
+      const filtered = savedSymptoms.filter(s =>
+        s.symptom.toLowerCase().includes(symptoms.toLowerCase())
+      );
+      setFilteredSymptoms(filtered);
+    } else {
+      setFilteredSymptoms(savedSymptoms);
+    }
+  }, [symptoms, savedSymptoms]);
+
+  useEffect(() => {
+    // Handle click outside to close dropdowns
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+      if (
+        symptomsDropdownRef.current &&
+        !symptomsDropdownRef.current.contains(event.target as Node) &&
+        symptomsInputRef.current &&
+        !symptomsInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSymptomsDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleDiagnosisSelect = (diagnosis: string) => {
+    setDiagnosisText(diagnosis);
+    setShowDropdown(false);
+  };
+
+  const handleSymptomSelect = (symptom: string) => {
+    // Add symptom to the symptoms list (comma-separated)
+    const existingSymptoms = symptoms
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    
+    if (!existingSymptoms.includes(symptom)) {
+      const newSymptoms = [...existingSymptoms, symptom].join(', ');
+      setSymptoms(newSymptoms);
+    }
+    setShowSymptomsDropdown(false);
+  };
 
   const handleAddDiagnosis = () => {
     const primaryDiagnosis = icdCode || diagnosisText.trim();
@@ -127,18 +254,59 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="diagnosis">
-                    Diagnosis (Free Text)
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between" htmlFor="diagnosis">
+                    <span>Diagnosis (Free Text)</span>
+                    <button
+                      type="button"
+                      onClick={fetchSavedDiagnoses}
+                      disabled={isLoadingDiagnoses}
+                      className="text-xs text-primary hover:text-primary/80 disabled:text-gray-400 transition-colors"
+                      title="Refresh saved diagnoses"
+                    >
+                      {isLoadingDiagnoses ? '⟳ Loading...' : '⟳ Refresh'}
+                    </button>
                   </label>
                   <input
+                    ref={inputRef}
                     id="diagnosis"
                     type="text"
                     value={diagnosisText}
-                    onChange={(e) => setDiagnosisText(e.target.value)}
-                    placeholder="e.g., Acute Bronchitis"
+                    onChange={(e) => {
+                      setDiagnosisText(e.target.value);
+                      setShowDropdown(true);
+                    }}
+                    onFocus={() => setShowDropdown(true)}
+                    placeholder="Start typing or select from saved diagnoses"
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-700 dark:text-white px-3 py-2"
+                    autoComplete="off"
                   />
+                  {showDropdown && filteredDiagnoses.length > 0 && (
+                    <div
+                      ref={dropdownRef}
+                      className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto"
+                    >
+                      {filteredDiagnoses.map((item, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleDiagnosisSelect(item.diagnosis)}
+                          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer flex justify-between items-center"
+                        >
+                          <span className="text-gray-900 dark:text-white">{item.diagnosis}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            Used {item.count}x
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {showDropdown && diagnosisText.trim() && filteredDiagnoses.length === 0 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg p-3">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No saved diagnoses match. You can add "<strong>{diagnosisText.trim()}</strong>" as a new diagnosis.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -157,18 +325,59 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-700 dark:text-white px-3 py-2"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="symptoms">
-                    Symptoms
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between" htmlFor="symptoms">
+                    <span>Symptoms</span>
+                    <button
+                      type="button"
+                      onClick={fetchSavedSymptoms}
+                      disabled={isLoadingSymptoms}
+                      className="text-xs text-primary hover:text-primary/80 disabled:text-gray-400 transition-colors"
+                      title="Refresh saved symptoms"
+                    >
+                      {isLoadingSymptoms ? '⟳ Loading...' : '⟳ Refresh'}
+                    </button>
                   </label>
                   <input
+                    ref={symptomsInputRef}
                     id="symptoms"
                     type="text"
                     value={symptoms}
-                    onChange={(e) => setSymptoms(e.target.value)}
-                    placeholder="e.g., Cough, Fever, Headache (comma separated)"
+                    onChange={(e) => {
+                      setSymptoms(e.target.value);
+                      setShowSymptomsDropdown(true);
+                    }}
+                    onFocus={() => setShowSymptomsDropdown(true)}
+                    placeholder="Start typing or select from saved symptoms (comma separated)"
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-700 dark:text-white px-3 py-2"
+                    autoComplete="off"
                   />
+                  {showSymptomsDropdown && filteredSymptoms.length > 0 && (
+                    <div
+                      ref={symptomsDropdownRef}
+                      className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto"
+                    >
+                      {filteredSymptoms.map((item, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleSymptomSelect(item.symptom)}
+                          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer flex justify-between items-center"
+                        >
+                          <span className="text-gray-900 dark:text-white">{item.symptom}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            Used {item.count}x
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {showSymptomsDropdown && symptoms.trim() && filteredSymptoms.length === 0 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg p-3">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No saved symptoms match. You can add "<strong>{symptoms.trim()}</strong>" as a new symptom.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
