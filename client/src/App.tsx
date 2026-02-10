@@ -8,6 +8,7 @@ import MultistepPrescription from './components/prescription/MultistepPrescripti
 import PrescriptionList from './components/prescription/PrescriptionList';
 import EmailVerification from './components/EmailVerification';
 import PatientManagement from './components/PatientManagement';
+import PatientDetail from './components/patient/PatientDetail';
 import './App.css';
 import AppointmentManagement from './components/Appointments';
 import PrescriptionDetails from './components/prescription/PrescriptionDetails';
@@ -33,6 +34,7 @@ function App() {
           />
           <Route path="/appointments" element={isAuthenticated ? <AppointmentManagement /> : <Navigate to="/login" />} />
           <Route path="/patients" element={isAuthenticated ? <PatientManagement /> : <Navigate to="/login" />} />
+          <Route path="/patients/:id" element={isAuthenticated ? <PatientDetail /> : <Navigate to="/login" />} />
           <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
         </Routes>
       </div>

@@ -40,6 +40,7 @@ interface UpdatePatientData extends CreatePatientData {
 interface PatientState {
   patients: Patient[];
   currentPatient: Patient | null;
+  currentPatientPrescriptions: any[];
   isLoading: boolean;
   error: string | null;
   searchQuery: string;
@@ -51,6 +52,7 @@ interface PatientState {
 const initialState: PatientState = {
   patients: [],
   currentPatient: null,
+  currentPatientPrescriptions: [],
   isLoading: false,
   error: null,
   searchQuery: '',
@@ -216,6 +218,42 @@ export const fetchPatientById = createAsyncThunk(
   }
 );
 
+export const fetchPatientPrescriptions = createAsyncThunk(
+  'patients/fetchPrescriptions',
+  async (patientId: string, { rejectWithValue }) => {
+    try {
+      const token = getToken();
+      if (!token) {
+        return rejectWithValue('Auth token missing');
+      }
+
+      const response = await fetch(
+        `http://localhost:8000/api/prescriptions?patientId=${patientId}&limit=100`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return rejectWithValue(errorData.message || 'Failed to fetch patient prescriptions');
+      }
+
+      const data = await response.json();
+      const prescriptionsWithId = data.prescriptions.map((p: any) => ({
+        ...p,
+        id: p._id,
+      }));
+      return prescriptionsWithId;
+    } catch (error) {
+      return rejectWithValue('Network error occurred');
+    }
+  }
+);
+
 const patientSlice = createSlice({
   name: 'patients',
   initialState,
@@ -315,6 +353,17 @@ const patientSlice = createSlice({
       })
       .addCase(fetchPatientById.rejected, (state, action) => {
         state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch patient prescriptions cases
+      .addCase(fetchPatientPrescriptions.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(fetchPatientPrescriptions.fulfilled, (state, action) => {
+        state.currentPatientPrescriptions = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchPatientPrescriptions.rejected, (state, action) => {
         state.error = action.payload as string;
       });
   },

@@ -72,8 +72,13 @@ export const getPrescriptions = async (req: AuthenticatedRequest, res: Response)
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
     const search = req.query.search as string;
+    const patientId = req.query.patientId as string;
 
     let query: any = { doctorId: req.user._id };
+
+    if (patientId) {
+      query.patientId = patientId;
+    }
 
     if (search) {
       // Search by patient name, diagnosis, or prescription number
@@ -87,6 +92,7 @@ export const getPrescriptions = async (req: AuthenticatedRequest, res: Response)
 
     const prescriptions = await Prescription.find(query)
       .populate('doctorId', 'name licenseNumber specialization')
+      .sort({ dateIssued: -1 })
       .skip(skip)
       .limit(limit);
 

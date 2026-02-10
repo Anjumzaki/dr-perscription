@@ -163,7 +163,6 @@ const DiagnosisSchema: Schema = new Schema({
   },
   duration: {
     type: String,
-    required: true,
     trim: true
   },
   severity: {
@@ -192,7 +191,6 @@ const LifestyleSchema: Schema = new Schema({
   },
   followUpInstructions: {
     type: String,
-    required: true,
     trim: true
   }
 });

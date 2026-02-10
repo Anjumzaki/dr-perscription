@@ -10,6 +10,57 @@ interface Medication {
   notes?: string;
 }
 
+interface PrescriptionFullData {
+  patient: {
+    name: string;
+    age: number;
+    gender: string;
+    phone: string;
+    email?: string;
+    address?: string;
+    allergies?: string;
+  };
+  diagnosis: {
+    primaryDiagnosis: string;
+    secondaryDiagnosis?: string;
+    symptoms: string[];
+    duration: string;
+    severity: string;
+    notes?: string;
+  }[];
+  lifestyle: {
+    dietaryAdvice: string[];
+    exerciseRecommendations: string[];
+    lifestyleModifications: string[];
+    followUpInstructions: string;
+  };
+  vitals: {
+    bloodPressure?: string;
+    temperature?: string;
+    heartRate?: string;
+    weight?: string;
+    height?: string;
+    bmi?: string;
+    oxygenSaturation?: string;
+    respiratoryRate?: string;
+  };
+  tests: {
+    orderedTests: string[];
+    labResults?: string[];
+    imagingResults?: string[];
+    testNotes?: string;
+  };
+  medications: Medication[];
+}
+
+interface Doctor {
+  name: string;
+  specialization?: string;
+  licenseNumber?: string;
+  phone: string;
+  email: string;
+}
+
 interface WritePrescriptionProps {
   data: Medication[];
   onUpdate: (data: Medication[]) => void;
@@ -17,6 +68,9 @@ interface WritePrescriptionProps {
   onPrev: () => void;
   loading: boolean;
   error: string;
+  validationErrors?: string[];
+  prescriptionData?: PrescriptionFullData;
+  doctor?: Doctor | null;
 }
 
 const strengthOptions = ['5mg', '10mg', '20mg', '25mg', '50mg', '100mg', '200mg', '250mg', '500mg', '750mg', '1000mg', '100mcg', '200mcg'];
@@ -45,7 +99,10 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
   onSubmit,
   onPrev,
   loading,
-  error
+  error,
+  validationErrors = [],
+  prescriptionData,
+  doctor
 }) => {
   const medications = Array.isArray(data) ? data : [];
 
@@ -115,6 +172,246 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
     onSubmit();
   };
 
+  const handlePrint = () => {
+    if (!prescriptionData || medications.length === 0) {
+      setFormError('Please add at least one medication before printing.');
+      return;
+    }
+
+    const { patient, diagnosis, lifestyle, vitals, tests } = prescriptionData;
+    const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    const vitalsHtml = [
+      vitals.bloodPressure && `<span><strong>BP:</strong> ${vitals.bloodPressure}</span>`,
+      vitals.heartRate && `<span><strong>HR:</strong> ${vitals.heartRate}</span>`,
+      vitals.temperature && `<span><strong>Temp:</strong> ${vitals.temperature}</span>`,
+      vitals.oxygenSaturation && `<span><strong>SpO2:</strong> ${vitals.oxygenSaturation}</span>`,
+      vitals.respiratoryRate && `<span><strong>RR:</strong> ${vitals.respiratoryRate}</span>`,
+      vitals.weight && `<span><strong>Weight:</strong> ${vitals.weight} kg</span>`,
+      vitals.height && `<span><strong>Height:</strong> ${vitals.height} cm</span>`,
+      vitals.bmi && `<span><strong>BMI:</strong> ${vitals.bmi}</span>`,
+    ].filter(Boolean).join('&nbsp;&nbsp;|&nbsp;&nbsp;');
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Prescription - ${patient.name}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1a1a1a; padding: 20px; font-size: 13px; }
+          .prescription { max-width: 800px; margin: 0 auto; border: 2px solid #2563eb; padding: 0; }
+
+          /* Header */
+          .header { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; }
+          .header-left h1 { font-size: 22px; margin-bottom: 2px; }
+          .header-left p { font-size: 12px; opacity: 0.9; }
+          .header-right { text-align: right; font-size: 11px; }
+          .header-right p { margin-bottom: 2px; }
+
+          /* Patient Info */
+          .patient-section { padding: 16px 24px; background: #f0f7ff; border-bottom: 1px solid #dbeafe; display: flex; justify-content: space-between; }
+          .patient-section .col { flex: 1; }
+          .patient-section p { margin-bottom: 3px; font-size: 12px; }
+          .patient-section strong { color: #1e40af; }
+
+          /* Vitals Bar */
+          .vitals-bar { padding: 10px 24px; background: #fefce8; border-bottom: 1px solid #fef08a; font-size: 11px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+          .vitals-bar strong { color: #854d0e; }
+
+          /* Diagnosis */
+          .diagnosis-section { padding: 14px 24px; border-bottom: 1px solid #e5e7eb; }
+          .section-title { font-size: 13px; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #dbeafe; padding-bottom: 4px; }
+          .diagnosis-item { margin-bottom: 8px; padding: 8px 12px; background: #f9fafb; border-radius: 4px; border-left: 3px solid #2563eb; }
+          .diagnosis-item p { font-size: 12px; margin-bottom: 2px; }
+          .symptoms-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+          .symptom-tag { background: #dbeafe; color: #1e40af; padding: 1px 8px; border-radius: 10px; font-size: 10px; }
+
+          /* Rx Section */
+          .rx-section { padding: 16px 24px; }
+          .rx-symbol { font-size: 28px; font-weight: 700; color: #2563eb; font-family: serif; margin-bottom: 10px; }
+          .med-table { width: 100%; border-collapse: collapse; }
+          .med-table th { background: #1e40af; color: white; padding: 8px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+          .med-table td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; }
+          .med-table tr:nth-child(even) { background: #f9fafb; }
+          .med-num { font-weight: 700; color: #2563eb; }
+          .med-name { font-weight: 600; }
+          .med-instructions { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+          /* Advice */
+          .advice-section { padding: 14px 24px; border-top: 1px solid #e5e7eb; }
+          .advice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+          .advice-box h4 { font-size: 11px; font-weight: 700; color: #059669; text-transform: uppercase; margin-bottom: 4px; }
+          .advice-box ul { padding-left: 16px; font-size: 11px; color: #374151; }
+          .advice-box ul li { margin-bottom: 2px; }
+
+          /* Tests */
+          .tests-section { padding: 14px 24px; border-top: 1px solid #e5e7eb; }
+          .test-list { display: flex; flex-wrap: wrap; gap: 6px; }
+          .test-tag { background: #fef3c7; color: #92400e; padding: 2px 10px; border-radius: 10px; font-size: 11px; border: 1px solid #fde68a; }
+
+          /* Follow-up */
+          .followup { padding: 12px 24px; background: #f0fdf4; border-top: 1px solid #bbf7d0; font-size: 12px; }
+          .followup strong { color: #166534; }
+
+          /* Footer */
+          .footer { padding: 16px 24px; border-top: 2px solid #2563eb; display: flex; justify-content: space-between; align-items: flex-end; }
+          .signature-area { text-align: right; }
+          .signature-line { width: 200px; border-top: 1px solid #1a1a1a; margin-top: 40px; margin-left: auto; padding-top: 4px; font-size: 12px; }
+          .footer-left { font-size: 10px; color: #6b7280; }
+
+          @media print {
+            body { padding: 0; }
+            .prescription { border: none; }
+            @page { margin: 10mm; size: A4; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="prescription">
+          <!-- Header -->
+          <div class="header">
+            <div class="header-left">
+              <h1>Dr. ${doctor?.name || 'Doctor'}</h1>
+              <p>${doctor?.specialization || 'General Physician'}${doctor?.licenseNumber ? ` | License: ${doctor.licenseNumber}` : ''}</p>
+            </div>
+            <div class="header-right">
+              <p><strong>Date:</strong> ${today}</p>
+              ${doctor?.phone ? `<p>Tel: ${doctor.phone}</p>` : ''}
+              ${doctor?.email ? `<p>${doctor.email}</p>` : ''}
+            </div>
+          </div>
+
+          <!-- Patient Info -->
+          <div class="patient-section">
+            <div class="col">
+              <p><strong>Patient:</strong> ${patient.name}</p>
+              <p><strong>Age/Gender:</strong> ${patient.age} yrs / ${patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1)}</p>
+              <p><strong>Phone:</strong> ${patient.phone}</p>
+            </div>
+            <div class="col" style="text-align:right;">
+              ${patient.address ? `<p><strong>Address:</strong> ${patient.address}</p>` : ''}
+              ${patient.allergies ? `<p style="color:#dc2626;"><strong>Allergies:</strong> ${patient.allergies}</p>` : ''}
+            </div>
+          </div>
+
+          <!-- Vitals -->
+          ${vitalsHtml ? `<div class="vitals-bar">${vitalsHtml}</div>` : ''}
+
+          <!-- Diagnosis -->
+          ${diagnosis.length > 0 ? `
+          <div class="diagnosis-section">
+            <div class="section-title">Diagnosis</div>
+            ${diagnosis.map((d, i) => `
+              <div class="diagnosis-item">
+                <p><strong>${d.primaryDiagnosis}</strong>${d.severity ? ` <span style="color:#9333ea;">(${d.severity})</span>` : ''}</p>
+                ${d.secondaryDiagnosis ? `<p style="font-size:11px;color:#6b7280;">${d.secondaryDiagnosis}</p>` : ''}
+                ${d.duration ? `<p style="font-size:11px;">Duration: ${d.duration}</p>` : ''}
+                ${d.symptoms && d.symptoms.length > 0 ? `<div class="symptoms-list">${d.symptoms.map(s => `<span class="symptom-tag">${s}</span>`).join('')}</div>` : ''}
+                ${d.notes ? `<p style="font-size:11px;color:#6b7280;margin-top:4px;">Note: ${d.notes}</p>` : ''}
+              </div>
+            `).join('')}
+          </div>` : ''}
+
+          <!-- Rx - Medications -->
+          <div class="rx-section">
+            <div class="rx-symbol">Rx</div>
+            <table class="med-table">
+              <thead>
+                <tr>
+                  <th style="width:30px;">#</th>
+                  <th>Medicine</th>
+                  <th>Dosage</th>
+                  <th>Frequency</th>
+                  <th>Duration</th>
+                  <th>Route</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${medications.map((med, i) => `
+                  <tr>
+                    <td class="med-num">${i + 1}</td>
+                    <td>
+                      <span class="med-name">${med.name}</span>
+                      ${med.instructions ? `<div class="med-instructions">${med.instructions}</div>` : ''}
+                      ${med.notes ? `<div class="med-instructions">Pharmacist: ${med.notes}</div>` : ''}
+                    </td>
+                    <td>${med.dosage}</td>
+                    <td>${med.frequency}</td>
+                    <td>${med.duration}</td>
+                    <td>${med.route || '-'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Lifestyle Advice -->
+          ${(lifestyle.dietaryAdvice.length > 0 || lifestyle.exerciseRecommendations.length > 0 || lifestyle.lifestyleModifications.length > 0) ? `
+          <div class="advice-section">
+            <div class="section-title">Advice</div>
+            <div class="advice-grid">
+              ${lifestyle.dietaryAdvice.length > 0 ? `
+              <div class="advice-box">
+                <h4>Dietary</h4>
+                <ul>${lifestyle.dietaryAdvice.map(a => `<li>${a}</li>`).join('')}</ul>
+              </div>` : ''}
+              ${lifestyle.exerciseRecommendations.length > 0 ? `
+              <div class="advice-box">
+                <h4>Exercise</h4>
+                <ul>${lifestyle.exerciseRecommendations.map(a => `<li>${a}</li>`).join('')}</ul>
+              </div>` : ''}
+              ${lifestyle.lifestyleModifications.length > 0 ? `
+              <div class="advice-box">
+                <h4>Lifestyle</h4>
+                <ul>${lifestyle.lifestyleModifications.map(a => `<li>${a}</li>`).join('')}</ul>
+              </div>` : ''}
+            </div>
+          </div>` : ''}
+
+          <!-- Ordered Tests -->
+          ${tests.orderedTests.length > 0 ? `
+          <div class="tests-section">
+            <div class="section-title">Ordered Tests</div>
+            <div class="test-list">
+              ${tests.orderedTests.map(t => `<span class="test-tag">${t}</span>`).join('')}
+            </div>
+            ${tests.testNotes ? `<p style="font-size:11px;color:#6b7280;margin-top:6px;">Note: ${tests.testNotes}</p>` : ''}
+          </div>` : ''}
+
+          <!-- Follow-up -->
+          ${lifestyle.followUpInstructions ? `
+          <div class="followup">
+            <strong>Follow-up:</strong> ${lifestyle.followUpInstructions}
+          </div>` : ''}
+
+          <!-- Footer -->
+          <div class="footer">
+            <div class="footer-left">
+              <p>This is a computer-generated prescription.</p>
+            </div>
+            <div class="signature-area">
+              <div class="signature-line">
+                Dr. ${doctor?.name || 'Doctor'}<br/>
+                <span style="font-size:10px;color:#6b7280;">${doctor?.specialization || ''}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    }
+  };
+
   const getRouteIcon = (r: string) => {
     switch (r) {
       case 'Oral': return 'pill';
@@ -141,6 +438,17 @@ const WritePrescription: React.FC<WritePrescriptionProps> = ({
               {(error || formError) && (
                 <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
                   <p className="text-red-600 dark:text-red-400 text-sm">{error || formError}</p>
+                </div>
+              )}
+
+              {validationErrors.length > 0 && (
+                <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                  <p className="text-red-700 dark:text-red-300 text-sm font-semibold mb-2">Please fix the following before submitting:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    {validationErrors.map((err, i) => (
+                      <li key={i} className="text-red-600 dark:text-red-400 text-sm">{err}</li>
+                    ))}
+                  </ul>
                 </div>
               )}
 

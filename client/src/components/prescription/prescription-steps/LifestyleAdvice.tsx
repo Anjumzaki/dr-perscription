@@ -298,6 +298,35 @@ const LifestyleAdvice: React.FC<LifestyleAdviceProps> = ({ data, onUpdate, onNex
         <button onClick={onPrev}>Previous</button>
         <button onClick={handleNext}>Next</button>
       </div>
+
+      <div className="flex flex-wrap gap-2 mb-6">
+        {data.lifestyleModifications.map((mod, index) => (
+          <div key={index} className="px-3 py-1 bg-purple-100 rounded-full">
+            {mod}
+            <button
+              onClick={() =>
+                removeFromArray('lifestyleModifications', index)
+              }
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+        Follow-up Instructions <span className="text-gray-400 font-normal">(Optional)</span>
+      </label>
+
+      <textarea
+        value={data.followUpInstructions}
+        onChange={(e) =>
+          onUpdate({ followUpInstructions: e.target.value })
+        }
+        rows={4}
+        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+        placeholder="e.g., Follow up in 2 weeks, Return if symptoms worsen"
+      />
     </div>
   );
 
