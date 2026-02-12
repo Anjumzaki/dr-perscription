@@ -58,24 +58,18 @@ const Header = () => {
             Perscriptions
           </NavLink>
 
-          <NavLink
-            to="/reports"
-            className={({ isActive }) =>
-              `text-gray-700 dark:text-gray-300 font-medium hover:text-primary dark:hover:text-primary ${isActive ? 'text-primary dark:text-primary' : ''
-              }`
-            }
-          >
-            Reports
-          </NavLink>
+        
         </nav>
-        <div
-          className="h-10 w-10 rounded-full bg-cover bg-center cursor-pointer relative"
+        <button
           onClick={handleLogout}
-          title="Click to logout"
-          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%231193d4' viewBox='0 0 24 24'%3E%3Cpath d='M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 13.5C14.8 13.3 14.6 13.1 14.3 13.1L13 14.4C12.8 14.6 12.5 14.6 12.3 14.4L10.5 12.6C10.1 12.2 9.5 12.2 9.1 12.6L3 18.7V21C3 21.6 3.4 22 4 22H20C20.6 22 21 21.6 21 21V9Z'/%3E%3C/svg%3E")` }}
+          title="Logout"
+          aria-label="Logout"
+          className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors relative"
         >
-          <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-        </div>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700 dark:text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
+          </svg>
+        </button>
       </div>
 
     </header>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiService } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
@@ -9,16 +10,45 @@ const Dashboard: React.FC = () => {
   const [stats, setStats] = useState({
     totalPatients: 0,
     consultationsToday: 0,
-    pendingPrescriptions: 0
+    newPatientsToday: 0
   });
 
-  useEffect(() => {
+  const [loading, setLoading] = useState(true);
 
-    setStats({
-      totalPatients: 245,
-      consultationsToday: 12,
-      pendingPrescriptions: 3
-    });
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch patients to get total count and recent patients
+        const patientsResp = await apiService.patients.getAll({ limit: 1000 });
+        const totalPatients = patientsResp.data.total || 0;
+        const patientsList = patientsResp.data.patients || [];
+
+        // Fetch prescriptions (large limit) and compute today's consultations
+        const prescriptionsResp = await apiService.prescriptions.getAll({ page: 1, limit: 1000 });
+        const prescriptions = prescriptionsResp.data.prescriptions || [];
+
+        const isSameDay = (d1: string | number | Date, d2: Date) => {
+          const a = new Date(d1);
+          return a.getFullYear() === d2.getFullYear() && a.getMonth() === d2.getMonth() && a.getDate() === d2.getDate();
+        };
+
+        const today = new Date();
+        const consultationsToday = prescriptions.filter((p: any) => isSameDay(p.dateIssued || p.createdAt, today)).length;
+
+        // New patients today
+        const newPatientsToday = patientsList.filter((p: any) => isSameDay(p.createdAt, today)).length;
+
+        setStats({ totalPatients, consultationsToday, newPatientsToday });
+      } catch (err) {
+        console.error('Error fetching dashboard stats', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
   }, []);
 
 
@@ -26,7 +56,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
       <div className="flex min-h-screen w-full flex-col">
-       
+
 
         {/* Main Content */}
         <main className="flex-1 px-10 py-8">
@@ -53,7 +83,7 @@ const Dashboard: React.FC = () => {
                 className="flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
                 Add New Prescription
               </Link>
@@ -62,7 +92,7 @@ const Dashboard: React.FC = () => {
                 className="flex items-center gap-2 rounded-lg bg-primary/10 px-5 py-3 text-sm font-semibold text-primary hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 transition-colors"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 Manage Patients
               </Link>
@@ -74,15 +104,15 @@ const Dashboard: React.FC = () => {
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="rounded-xl border border-primary/20 bg-background-light p-6 shadow-sm dark:border-primary/30 dark:bg-background-dark">
                   <p className="text-base font-medium text-gray-600 dark:text-gray-400">Total Patients</p>
-                  <p className="mt-1 text-4xl font-bold text-gray-900 dark:text-white">{stats.totalPatients}</p>
+                  <p className="mt-1 text-4xl font-bold text-gray-900 dark:text-white">{loading ? '—' : stats.totalPatients}</p>
                 </div>
                 <div className="rounded-xl border border-primary/20 bg-background-light p-6 shadow-sm dark:border-primary/30 dark:bg-background-dark">
                   <p className="text-base font-medium text-gray-600 dark:text-gray-400">Consultations Today</p>
-                  <p className="mt-1 text-4xl font-bold text-gray-900 dark:text-white">{stats.consultationsToday}</p>
+                  <p className="mt-1 text-4xl font-bold text-gray-900 dark:text-white">{loading ? '—' : stats.consultationsToday}</p>
                 </div>
                 <div className="rounded-xl border border-primary/20 bg-background-light p-6 shadow-sm dark:border-primary/30 dark:bg-background-dark">
-                  <p className="text-base font-medium text-gray-600 dark:text-gray-400">Pending Prescriptions</p>
-                  <p className="mt-1 text-4xl font-bold text-primary">{stats.pendingPrescriptions}</p>
+                  <p className="text-base font-medium text-gray-600 dark:text-gray-400">New Patients Today</p>
+                  <p className="mt-1 text-4xl font-bold text-primary">{loading ? '—' : stats.newPatientsToday}</p>
                 </div>
               </div>
             </div>

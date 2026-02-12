@@ -29,24 +29,6 @@ interface SavedSymptom {
   lastUsed: string;
 }
 
-const icdCodes = [
-  { code: 'A01.0', label: 'Typhoid fever' },
-  { code: 'A09', label: 'Infectious gastroenteritis and colitis' },
-  { code: 'B34.9', label: 'Viral infection, unspecified' },
-  { code: 'E11', label: 'Type 2 diabetes mellitus' },
-  { code: 'I10', label: 'Essential (primary) hypertension' },
-  { code: 'J06.9', label: 'Acute upper respiratory infection' },
-  { code: 'J18.9', label: 'Pneumonia, unspecified' },
-  { code: 'J20.9', label: 'Acute bronchitis, unspecified' },
-  { code: 'J45', label: 'Asthma' },
-  { code: 'K21', label: 'Gastro-esophageal reflux disease' },
-  { code: 'K29.7', label: 'Gastritis, unspecified' },
-  { code: 'M54.5', label: 'Low back pain' },
-  { code: 'N39.0', label: 'Urinary tract infection' },
-  { code: 'R50.9', label: 'Fever, unspecified' },
-  { code: 'R51', label: 'Headache' },
-];
-
 const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onNext, onPrev }) => {
   const [icdCode, setIcdCode] = useState('');
   const [diagnosisText, setDiagnosisText] = useState('');
@@ -55,7 +37,7 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
   const [symptoms, setSymptoms] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
-  
+
   const [savedDiagnoses, setSavedDiagnoses] = useState<SavedDiagnosis[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [filteredDiagnoses, setFilteredDiagnoses] = useState<SavedDiagnosis[]>([]);
@@ -69,6 +51,8 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
   const [isLoadingSymptoms, setIsLoadingSymptoms] = useState(false);
   const symptomsDropdownRef = useRef<HTMLDivElement>(null);
   const symptomsInputRef = useRef<HTMLInputElement>(null);
+  const [isPersistingSymptoms, setIsPersistingSymptoms] = useState(false);
+  const [symptomSavedIndicator, setSymptomSavedIndicator] = useState(false);
 
   const fetchSavedDiagnoses = async () => {
     setIsLoadingDiagnoses(true);
@@ -91,6 +75,43 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
       console.error('Error fetching saved symptoms:', error);
     } finally {
       setIsLoadingSymptoms(false);
+    }
+  };
+
+  const persistCustomSymptoms = async () => {
+    try {
+      const entered = symptoms
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (entered.length === 0) return;
+
+      const existingLower = savedSymptoms.map(s => s.symptom.toLowerCase());
+
+      setIsPersistingSymptoms(true);
+      let anySaved = false;
+
+      for (const sym of entered) {
+        if (!existingLower.includes(sym.toLowerCase())) {
+          try {
+            await apiService.prescriptions.addSavedSymptom({ symptom: sym });
+            anySaved = true;
+          } catch (err) {
+            console.error('Failed to save symptom', sym, err);
+          }
+        }
+      }
+
+      // Refresh saved symptoms
+      await fetchSavedSymptoms();
+
+      if (anySaved) {
+        setSymptomSavedIndicator(true);
+        window.setTimeout(() => setSymptomSavedIndicator(false), 2000);
+      }
+      setIsPersistingSymptoms(false);
+    } catch (err) {
+      console.error('Error persisting custom symptoms:', err);
     }
   };
 
@@ -162,7 +183,7 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
-    
+
     if (!existingSymptoms.includes(symptom)) {
       const newSymptoms = [...existingSymptoms, symptom].join(', ');
       setSymptoms(newSymptoms);
@@ -238,7 +259,7 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" htmlFor="icd-code">
-                    ICD-10 Code
+                    Saved Diagnoses
                   </label>
                   <select
                     id="icd-code"
@@ -246,12 +267,16 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
                     onChange={(e) => setIcdCode(e.target.value)}
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-700 dark:text-white px-3 py-2"
                   >
-                    <option value="">Select a code or enter diagnosis below</option>
-                    {icdCodes.map((item) => (
-                      <option key={item.code} value={`${item.code} - ${item.label}`}>
-                        {item.code} - {item.label}
-                      </option>
-                    ))}
+                    <option value="">Select a saved diagnosis or enter below</option>
+                    {savedDiagnoses && savedDiagnoses.length > 0 ? (
+                      savedDiagnoses.map((item) => (
+                        <option key={item.diagnosis} value={item.diagnosis}>
+                          {item.diagnosis}
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled>No saved diagnoses</option>
+                    )}
                   </select>
                 </div>
                 <div className="relative">
@@ -277,6 +302,7 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
                       setShowDropdown(true);
                     }}
                     onFocus={() => setShowDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
                     placeholder="Start typing or select from saved diagnoses"
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-700 dark:text-white px-3 py-2"
                     autoComplete="off"
@@ -328,15 +354,22 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
                 <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between" htmlFor="symptoms">
                     <span>Symptoms</span>
-                    <button
-                      type="button"
-                      onClick={fetchSavedSymptoms}
-                      disabled={isLoadingSymptoms}
-                      className="text-xs text-primary hover:text-primary/80 disabled:text-gray-400 transition-colors"
-                      title="Refresh saved symptoms"
-                    >
-                      {isLoadingSymptoms ? '⟳ Loading...' : '⟳ Refresh'}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {isPersistingSymptoms ? (
+                        <span className="text-xs text-gray-500">Saving...</span>
+                      ) : symptomSavedIndicator ? (
+                        <span className="text-xs text-green-600 flex items-center gap-1">✓ Saved</span>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={fetchSavedSymptoms}
+                        disabled={isLoadingSymptoms}
+                        className="text-xs text-primary hover:text-primary/80 disabled:text-gray-400 transition-colors"
+                        title="Refresh saved symptoms"
+                      >
+                        {isLoadingSymptoms ? '⟳ Loading...' : '⟳ Refresh'}
+                      </button>
+                    </div>
                   </label>
                   <input
                     ref={symptomsInputRef}
@@ -348,6 +381,7 @@ const PatientDiagnosis: React.FC<PatientDiagnosisProps> = ({ data, onUpdate, onN
                       setShowSymptomsDropdown(true);
                     }}
                     onFocus={() => setShowSymptomsDropdown(true)}
+                    onBlur={() => setTimeout(() => { setShowSymptomsDropdown(false); persistCustomSymptoms(); }, 150)}
                     placeholder="Start typing or select from saved symptoms (comma separated)"
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-primary dark:bg-gray-700 dark:text-white px-3 py-2"
                     autoComplete="off"

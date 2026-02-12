@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { createPrescription, clearError } from '../../store/slices/prescriptionSlice';
@@ -83,6 +83,19 @@ const MultistepPrescription: React.FC = () => {
   const { user: doctorUser } = useAppSelector(state => state.auth);
 
   const [currentStep, setCurrentStep] = useState(1);
+
+  useEffect(() => {
+    try {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    } catch (err) {
+      // fallback: set scroll on documentElement
+      try {
+        document.documentElement.scrollTop = 0;
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [currentStep]);
 
   const [prescriptionData, setPrescriptionData] = useState<PrescriptionData>({
     patient: {

@@ -17,16 +17,16 @@ apiClient.interceptors.request.use(
   (config) => {
     const state = store.getState();
     const token = state.auth.token;
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor to handle errors
@@ -40,9 +40,9 @@ apiClient.interceptors.response.use(
       store.dispatch(logout());
       window.location.href = '/login';
     }
-    
+
     return Promise.reject(error);
-  }
+  },
 );
 
 // API service methods
@@ -51,7 +51,7 @@ export const apiService = {
   auth: {
     login: (credentials: { email: string; password: string }) =>
       apiClient.post('/auth/login', credentials),
-    
+
     register: (userData: {
       name: string;
       email: string;
@@ -61,34 +61,36 @@ export const apiService = {
       licenseNumber?: string;
       specialization?: string;
     }) => apiClient.post('/auth/register', userData),
-    
+
     verifyEmail: (token: string) =>
       apiClient.get(`/auth/verify-email?token=${token}`),
-    
+
     resendVerificationEmail: (email: string) =>
       apiClient.post('/auth/resend-verification', { email }),
   },
-  
+
   // Prescription endpoints
   prescriptions: {
     getAll: (params?: { page?: number; limit?: number }) => {
       const queryParams = new URLSearchParams();
       if (params?.page) queryParams.append('page', params.page.toString());
       if (params?.limit) queryParams.append('limit', params.limit.toString());
-      
+
       return apiClient.get(`/prescriptions?${queryParams}`);
     },
-    
+
     getById: (id: string) => apiClient.get(`/prescriptions/${id}`),
-    
+
     getSavedDiagnoses: () => apiClient.get('/prescriptions/saved-diagnoses'),
-    
+
     getSavedSymptoms: () => apiClient.get('/prescriptions/saved-symptoms'),
-    
+    addSavedSymptom: (symptom: { symptom: string }) =>
+      apiClient.post('/prescriptions/saved-symptoms', symptom),
+
     getSavedTests: () => apiClient.get('/prescriptions/saved-tests'),
-    
+
     getSavedMedicines: () => apiClient.get('/prescriptions/saved-medicines'),
-    
+
     create: (prescriptionData: {
       patient: {
         id?: string;
@@ -138,10 +140,10 @@ export const apiService = {
       }[];
       notes?: string;
     }) => apiClient.post('/prescriptions', prescriptionData),
-    
+
     update: (id: string, prescriptionData: any) =>
       apiClient.put(`/prescriptions/${id}`, prescriptionData),
-    
+
     delete: (id: string) => apiClient.delete(`/prescriptions/${id}`),
   },
 
@@ -152,12 +154,12 @@ export const apiService = {
       if (params?.search) queryParams.append('search', params.search);
       if (params?.page) queryParams.append('page', params.page.toString());
       if (params?.limit) queryParams.append('limit', params.limit.toString());
-      
+
       return apiClient.get(`/patients?${queryParams}`);
     },
-    
+
     getById: (id: string) => apiClient.get(`/patients/${id}`),
-    
+
     create: (patientData: {
       name: string;
       age: number;
@@ -167,20 +169,23 @@ export const apiService = {
       address?: string;
       emergencyContact?: string;
     }) => apiClient.post('/patients', patientData),
-    
-    update: (id: string, patientData: {
-      name: string;
-      age: number;
-      gender: 'male' | 'female' | 'other';
-      phone: string;
-      email?: string;
-      address?: string;
-      emergencyContact?: string;
-    }) => apiClient.put(`/patients/${id}`, patientData),
-    
+
+    update: (
+      id: string,
+      patientData: {
+        name: string;
+        age: number;
+        gender: 'male' | 'female' | 'other';
+        phone: string;
+        email?: string;
+        address?: string;
+        emergencyContact?: string;
+      },
+    ) => apiClient.put(`/patients/${id}`, patientData),
+
     delete: (id: string) => apiClient.delete(`/patients/${id}`),
   },
-  
+
   // Generic methods for other endpoints
   get: (url: string) => apiClient.get(url),
   post: (url: string, data?: any) => apiClient.post(url, data),

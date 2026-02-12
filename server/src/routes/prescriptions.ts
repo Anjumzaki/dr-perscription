@@ -7,8 +7,9 @@ import {
   deletePrescription,
   getSavedDiagnoses,
   getSavedSymptoms,
+  addSavedSymptom,
   getSavedTests,
-  getSavedMedicines
+  getSavedMedicines,
 } from '../controllers/prescriptionController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -20,6 +21,7 @@ router.post('/', createPrescription);
 router.get('/', getPrescriptions);
 router.get('/saved-diagnoses', getSavedDiagnoses);
 router.get('/saved-symptoms', getSavedSymptoms);
+router.post('/saved-symptoms', addSavedSymptom);
 router.get('/saved-tests', getSavedTests);
 router.get('/saved-medicines', getSavedMedicines);
 router.get('/:id', getPrescriptionById);

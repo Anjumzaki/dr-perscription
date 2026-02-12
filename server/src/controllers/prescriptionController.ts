@@ -1,12 +1,16 @@
 import { Response } from 'express';
 import Prescription from '../models/Prescription';
+import SavedSymptom from '../models/SavedSymptom';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { getNextSequence } from '../utils/getNextSequence';
 
-
-export const createPrescription = async (req: AuthenticatedRequest, res: Response) => {
+export const createPrescription = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
   try {
-    const { patient, diagnosis, lifestyle, vitals, tests, medications, notes } = req.body;
+    const { patient, diagnosis, lifestyle, vitals, tests, medications, notes } =
+      req.body;
 
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -15,25 +19,35 @@ export const createPrescription = async (req: AuthenticatedRequest, res: Respons
     // console.log('Creating prescription with data:', {
     //   patient, diagnosis, lifestyle, vitals, tests, medications, notes
     // });
-console.log('Received prescription data');
+    console.log('Received prescription data');
     // Validate required fields
-    if (!patient || !diagnosis || !lifestyle || !vitals || !tests || !medications) {
-      return res.status(400).json({ 
-        message: 'All prescription sections are required (patient, diagnosis, lifestyle, vitals, tests, medications)' 
+    if (
+      !patient ||
+      !diagnosis ||
+      !lifestyle ||
+      !vitals ||
+      !tests ||
+      !medications
+    ) {
+      return res.status(400).json({
+        message:
+          'All prescription sections are required (patient, diagnosis, lifestyle, vitals, tests, medications)',
       });
     }
 
     if (!medications || medications.length === 0) {
-      return res.status(400).json({ 
-        message: 'At least one medication is required' 
+      return res.status(400).json({
+        message: 'At least one medication is required',
       });
     }
-console.log('All required fields are present. Proceeding to save prescription.');
+    console.log(
+      'All required fields are present. Proceeding to save prescription.',
+    );
 
-// Generate pure serial number from Mongo
-const serial = await getNextSequence('prescription');
+    // Generate pure serial number from Mongo
+    const serial = await getNextSequence('prescription');
 
-const prescriptionNumber = `RX-${serial.toString().padStart(4, '0')}`;
+    const prescriptionNumber = `RX-${serial.toString().padStart(4, '0')}`;
 
     const prescription = new Prescription({
       prescriptionNumber,
@@ -45,16 +59,19 @@ const prescriptionNumber = `RX-${serial.toString().padStart(4, '0')}`;
       vitals,
       tests,
       medications,
-      notes
+      notes,
     });
-console.log('Saving prescription');
+    console.log('Saving prescription');
     await prescription.save();
     console.log('Prescription saved successfully');
-    await prescription.populate('doctorId', 'name licenseNumber specialization');
+    await prescription.populate(
+      'doctorId',
+      'name licenseNumber specialization',
+    );
 
     res.status(201).json({
       message: 'Prescription created successfully',
-      prescription
+      prescription,
     });
   } catch (error) {
     console.error('Error creating prescription:', error);
@@ -62,7 +79,10 @@ console.log('Saving prescription');
   }
 };
 
-export const getPrescriptions = async (req: AuthenticatedRequest, res: Response) => {
+export const getPrescriptions = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -102,15 +122,17 @@ export const getPrescriptions = async (req: AuthenticatedRequest, res: Response)
       prescriptions,
       totalPages: Math.ceil(total / limit),
       currentPage: page,
-      total
+      total,
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
 };
 
-
-export const getPrescriptionById = async (req: AuthenticatedRequest, res: Response) => {
+export const getPrescriptionById = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
 
@@ -120,7 +142,7 @@ export const getPrescriptionById = async (req: AuthenticatedRequest, res: Respon
 
     const prescription = await Prescription.findOne({
       _id: id,
-      doctorId: req.user._id
+      doctorId: req.user._id,
     }).populate('doctorId', 'name licenseNumber specialization');
 
     if (!prescription) {
@@ -133,10 +155,14 @@ export const getPrescriptionById = async (req: AuthenticatedRequest, res: Respon
   }
 };
 
-export const updatePrescription = async (req: AuthenticatedRequest, res: Response) => {
+export const updatePrescription = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
-    const { patient, diagnosis, lifestyle, vitals, tests, medications, notes } = req.body;
+    const { patient, diagnosis, lifestyle, vitals, tests, medications, notes } =
+      req.body;
 
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -144,17 +170,17 @@ export const updatePrescription = async (req: AuthenticatedRequest, res: Respons
 
     const prescription = await Prescription.findOneAndUpdate(
       { _id: id, doctorId: req.user._id },
-      { 
+      {
         patientId: patient.id || null,
-        patient, 
-        diagnosis, 
-        lifestyle, 
-        vitals, 
-        tests, 
-        medications, 
-        notes 
+        patient,
+        diagnosis,
+        lifestyle,
+        vitals,
+        tests,
+        medications,
+        notes,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).populate('doctorId', 'name licenseNumber specialization');
 
     if (!prescription) {
@@ -163,14 +189,17 @@ export const updatePrescription = async (req: AuthenticatedRequest, res: Respons
 
     res.json({
       message: 'Prescription updated successfully',
-      prescription
+      prescription,
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error });
   }
 };
 
-export const deletePrescription = async (req: AuthenticatedRequest, res: Response) => {
+export const deletePrescription = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
   try {
     const { id } = req.params;
 
@@ -180,7 +209,7 @@ export const deletePrescription = async (req: AuthenticatedRequest, res: Respons
 
     const prescription = await Prescription.findOneAndDelete({
       _id: id,
-      doctorId: req.user._id
+      doctorId: req.user._id,
     });
 
     if (!prescription) {
@@ -193,7 +222,10 @@ export const deletePrescription = async (req: AuthenticatedRequest, res: Respons
   }
 };
 
-export const getSavedDiagnoses = async (req: AuthenticatedRequest, res: Response) => {
+export const getSavedDiagnoses = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -203,43 +235,51 @@ export const getSavedDiagnoses = async (req: AuthenticatedRequest, res: Response
     const diagnoses = await Prescription.aggregate([
       { $match: { doctorId: req.user._id } },
       { $unwind: '$diagnosis' },
-      { 
-        $group: { 
+      {
+        $group: {
           _id: null,
           diagnoses: {
             $push: {
               primary: '$diagnosis.primaryDiagnosis',
-              secondary: '$diagnosis.secondaryDiagnosis'
-            }
+              secondary: '$diagnosis.secondaryDiagnosis',
+            },
           },
-          lastUsed: { $max: '$dateIssued' }
-        } 
+          lastUsed: { $max: '$dateIssued' },
+        },
       },
       {
         $project: {
           _id: 0,
           diagnoses: 1,
-          lastUsed: 1
-        }
-      }
+          lastUsed: 1,
+        },
+      },
     ]);
 
     // Extract unique diagnoses with counts
-    const uniqueDiagnoses: { [key: string]: { count: number; lastUsed: Date } } = {};
+    const uniqueDiagnoses: {
+      [key: string]: { count: number; lastUsed: Date };
+    } = {};
 
     if (diagnoses.length > 0) {
       diagnoses[0].diagnoses.forEach((item: any) => {
         // Add primary diagnosis
         if (item.primary) {
           if (!uniqueDiagnoses[item.primary]) {
-            uniqueDiagnoses[item.primary] = { count: 0, lastUsed: diagnoses[0].lastUsed };
+            uniqueDiagnoses[item.primary] = {
+              count: 0,
+              lastUsed: diagnoses[0].lastUsed,
+            };
           }
           uniqueDiagnoses[item.primary].count += 1;
         }
         // Add secondary diagnosis if exists
         if (item.secondary) {
           if (!uniqueDiagnoses[item.secondary]) {
-            uniqueDiagnoses[item.secondary] = { count: 0, lastUsed: diagnoses[0].lastUsed };
+            uniqueDiagnoses[item.secondary] = {
+              count: 0,
+              lastUsed: diagnoses[0].lastUsed,
+            };
           }
           uniqueDiagnoses[item.secondary].count += 1;
         }
@@ -251,9 +291,13 @@ export const getSavedDiagnoses = async (req: AuthenticatedRequest, res: Response
       .map(([diagnosis, data]) => ({
         diagnosis,
         count: data.count,
-        lastUsed: data.lastUsed
+        lastUsed: data.lastUsed,
       }))
-      .sort((a, b) => b.count - a.count || new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime());
+      .sort(
+        (a, b) =>
+          b.count - a.count ||
+          new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime(),
+      );
 
     res.json({ diagnoses: result });
   } catch (error) {
@@ -262,7 +306,10 @@ export const getSavedDiagnoses = async (req: AuthenticatedRequest, res: Response
   }
 };
 
-export const getSavedSymptoms = async (req: AuthenticatedRequest, res: Response) => {
+export const getSavedSymptoms = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -273,22 +320,22 @@ export const getSavedSymptoms = async (req: AuthenticatedRequest, res: Response)
       { $match: { doctorId: req.user._id } },
       { $unwind: '$diagnosis' },
       { $unwind: '$diagnosis.symptoms' },
-      { 
-        $group: { 
+      {
+        $group: {
           _id: '$diagnosis.symptoms',
           count: { $sum: 1 },
-          lastUsed: { $max: '$dateIssued' }
-        } 
+          lastUsed: { $max: '$dateIssued' },
+        },
       },
       { $sort: { count: -1, lastUsed: -1 } },
-      { 
-        $project: { 
-          _id: 0, 
-          symptom: '$_id', 
+      {
+        $project: {
+          _id: 0,
+          symptom: '$_id',
           count: 1,
-          lastUsed: 1
-        } 
-      }
+          lastUsed: 1,
+        },
+      },
     ]);
 
     res.json({ symptoms });
@@ -298,7 +345,42 @@ export const getSavedSymptoms = async (req: AuthenticatedRequest, res: Response)
   }
 };
 
-export const getSavedTests = async (req: AuthenticatedRequest, res: Response) => {
+export const addSavedSymptom = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { symptom } = req.body;
+    if (!symptom || typeof symptom !== 'string' || !symptom.trim()) {
+      return res.status(400).json({ message: 'Invalid symptom' });
+    }
+
+    const normalized = symptom.trim();
+
+    // Upsert into SavedSymptom collection for this doctor
+    const updated = await SavedSymptom.findOneAndUpdate(
+      { doctorId: req.user._id, symptom: normalized },
+      { $inc: { count: 1 }, $set: { lastUsed: new Date() } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+
+    res
+      .status(200)
+      .json({ message: 'Saved symptom updated', symptom: updated });
+  } catch (error) {
+    console.error('Error saving symptom:', error);
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
+export const getSavedTests = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -308,22 +390,22 @@ export const getSavedTests = async (req: AuthenticatedRequest, res: Response) =>
     const tests = await Prescription.aggregate([
       { $match: { doctorId: req.user._id } },
       { $unwind: '$tests.orderedTests' },
-      { 
-        $group: { 
+      {
+        $group: {
           _id: '$tests.orderedTests',
           count: { $sum: 1 },
-          lastUsed: { $max: '$dateIssued' }
-        } 
+          lastUsed: { $max: '$dateIssued' },
+        },
       },
       { $sort: { count: -1, lastUsed: -1 } },
-      { 
-        $project: { 
-          _id: 0, 
-          test: '$_id', 
+      {
+        $project: {
+          _id: 0,
+          test: '$_id',
           count: 1,
-          lastUsed: 1
-        } 
-      }
+          lastUsed: 1,
+        },
+      },
     ]);
 
     res.json({ tests });
@@ -333,7 +415,10 @@ export const getSavedTests = async (req: AuthenticatedRequest, res: Response) =>
   }
 };
 
-export const getSavedMedicines = async (req: AuthenticatedRequest, res: Response) => {
+export const getSavedMedicines = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -343,22 +428,22 @@ export const getSavedMedicines = async (req: AuthenticatedRequest, res: Response
     const medicines = await Prescription.aggregate([
       { $match: { doctorId: req.user._id } },
       { $unwind: '$medications' },
-      { 
-        $group: { 
+      {
+        $group: {
           _id: '$medications.name',
           count: { $sum: 1 },
-          lastUsed: { $max: '$dateIssued' }
-        } 
+          lastUsed: { $max: '$dateIssued' },
+        },
       },
       { $sort: { count: -1, lastUsed: -1 } },
-      { 
-        $project: { 
-          _id: 0, 
-          medicine: '$_id', 
+      {
+        $project: {
+          _id: 0,
+          medicine: '$_id',
           count: 1,
-          lastUsed: 1
-        } 
-      }
+          lastUsed: 1,
+        },
+      },
     ]);
 
     res.json({ medicines });
