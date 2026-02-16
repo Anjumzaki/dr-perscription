@@ -1,0 +1,21 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const prescriptionController_1 = require("../controllers/prescriptionController");
+const auth_1 = require("../middleware/auth");
+const router = express_1.default.Router();
+router.use(auth_1.authenticateToken);
+router.post('/', prescriptionController_1.createPrescription);
+router.get('/', prescriptionController_1.getPrescriptions);
+router.get('/saved-diagnoses', prescriptionController_1.getSavedDiagnoses);
+router.get('/saved-symptoms', prescriptionController_1.getSavedSymptoms);
+router.post('/saved-symptoms', prescriptionController_1.addSavedSymptom);
+router.get('/saved-tests', prescriptionController_1.getSavedTests);
+router.get('/saved-medicines', prescriptionController_1.getSavedMedicines);
+router.get('/:id', prescriptionController_1.getPrescriptionById);
+router.put('/:id', prescriptionController_1.updatePrescription);
+router.delete('/:id', prescriptionController_1.deletePrescription);
+exports.default = router;
