@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface User {
   id: string;
@@ -30,15 +30,21 @@ const initialState: AuthState = {
 // Async thunks for API calls
 export const loginUser = createAsyncThunk(
   'auth/login',
-  async (credentials: { email: string; password: string }, { rejectWithValue }) => {
+  async (
+    credentials: { email: string; password: string },
+    { rejectWithValue }
+  ) => {
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api'}/auth/login`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(credentials),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -55,23 +61,29 @@ export const loginUser = createAsyncThunk(
 
 export const registerUser = createAsyncThunk(
   'auth/register',
-  async (userData: {
-    name: string;
-    email: string;
-    password: string;
-    phone: string;
-    role: string;
-    licenseNumber?: string;
-    specialization?: string;
-  }, { rejectWithValue }) => {
+  async (
+    userData: {
+      name: string;
+      email: string;
+      password: string;
+      phone: string;
+      role: string;
+      licenseNumber?: string;
+      specialization?: string;
+    },
+    { rejectWithValue }
+  ) => {
     try {
-      const response = await fetch('http://localhost:8000/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api'}/auth/register`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(userData),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -90,13 +102,18 @@ export const verifyEmail = createAsyncThunk(
   'auth/verifyEmail',
   async (token: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/auth/verify-email?token=${token}`, {
-        method: 'GET',
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api'}/auth/verify-email?token=${token}`,
+        {
+          method: 'GET',
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        return rejectWithValue(errorData.message || 'Email verification failed');
+        return rejectWithValue(
+          errorData.message || 'Email verification failed'
+        );
       }
 
       const data = await response.json();
@@ -111,17 +128,22 @@ export const resendVerificationEmail = createAsyncThunk(
   'auth/resendVerificationEmail',
   async (email: string, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:8000/api/auth/resend-verification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api'}/auth/resend-verification`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        return rejectWithValue(errorData.message || 'Failed to resend verification email');
+        return rejectWithValue(
+          errorData.message || 'Failed to resend verification email'
+        );
       }
 
       const data = await response.json();
@@ -136,26 +158,29 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    logout: (state) => {
+    logout: state => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
       state.error = null;
     },
-    clearError: (state) => {
+    clearError: state => {
       state.error = null;
     },
-    setCredentials: (state, action: PayloadAction<{ user: User; token: string }>) => {
+    setCredentials: (
+      state,
+      action: PayloadAction<{ user: User; token: string }>
+    ) => {
       state.user = action.payload.user;
       state.token = action.payload.token;
       state.isAuthenticated = true;
       state.error = null;
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
       // Login cases
-      .addCase(loginUser.pending, (state) => {
+      .addCase(loginUser.pending, state => {
         state.isLoading = true;
         state.error = null;
       })
@@ -172,7 +197,7 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
       })
       // Register cases
-      .addCase(registerUser.pending, (state) => {
+      .addCase(registerUser.pending, state => {
         state.isLoading = true;
         state.error = null;
       })
@@ -186,11 +211,11 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       })
       // Email verification cases
-      .addCase(verifyEmail.pending, (state) => {
+      .addCase(verifyEmail.pending, state => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(verifyEmail.fulfilled, (state) => {
+      .addCase(verifyEmail.fulfilled, state => {
         state.isLoading = false;
         state.error = null;
       })
@@ -199,11 +224,11 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       })
       // Resend verification cases
-      .addCase(resendVerificationEmail.pending, (state) => {
+      .addCase(resendVerificationEmail.pending, state => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(resendVerificationEmail.fulfilled, (state) => {
+      .addCase(resendVerificationEmail.fulfilled, state => {
         state.isLoading = false;
         state.error = null;
       })
